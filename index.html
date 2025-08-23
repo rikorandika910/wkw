@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>To-Do List App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: #fff;
+      padding: 20px 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      width: 350px;
+    }
+
+    h2 {
+      margin: 0 0 15px;
+      text-align: center;
+      color: #333;
+    }
+
+    .input-group {
+      display: flex;
+      margin-bottom: 15px;
+    }
+
+    .input-group input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px 0 0 8px;
+      outline: none;
+    }
+
+    .input-group button {
+      padding: 10px 15px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      border-radius: 0 8px 8px 0;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9fafb;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    li.completed span {
+      text-decoration: line-through;
+      color: gray;
+    }
+
+    .btn-delete {
+      background: #ef4444;
+      border: none;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>My To-Do List</h2>
+    <div class="input-group">
+      <input type="text" id="taskInput" placeholder="Tambah tugas...">
+      <button onclick="addTask()">Tambah</button>
+    </div>
+    <ul id="taskList"></ul>
+  </div>
+
+  <script>
+    function addTask() {
+      let input = document.getElementById("taskInput");
+      let taskText = input.value.trim();
+
+      if (taskText === "") {
+        alert("Isi dulu tugasnya!");
+        return;
+      }
+
+      let li = document.createElement("li");
+
+      let span = document.createElement("span");
+      span.textContent = taskText;
+      span.style.cursor = "pointer";
+      span.onclick = function() {
+        li.classList.toggle("completed");
+      };
+
+      let delBtn = document.createElement("button");
+      delBtn.textContent = "Hapus";
+      delBtn.className = "btn-delete";
+      delBtn.onclick = function() {
+        li.remove();
+      };
+
+      li.appendChild(span);
+      li.appendChild(delBtn);
+      document.getElementById("taskList").appendChild(li);
+
+      input.value = ""; // kosongkan input setelah ditambah
+    }
+  </script>
+</body>
+</html>
+
