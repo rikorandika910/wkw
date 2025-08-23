@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title> List Utang </title></title>
+  <title>List Utang</title>
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -10,7 +10,7 @@
 
     body {
       font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #6366f1, #ec4899, #f59e0b);
+      background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
       background-size: 300% 300%;
       animation: gradientBG 10s ease infinite;
       display: flex;
@@ -32,8 +32,155 @@
       padding: 25px 30px;
       border-radius: 16px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      width: 380px;
+      width: 420px;
       animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    h2 {
+      margin: 0 0 20px;
+      text-align: center;
+      color: #1f2937;
+      font-weight: 600;
+      font-size: 22px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+
+    .input-group input {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #3b82f6;
+      border-radius: 10px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    .input-group button {
+      padding: 12px 18px;
+      border: none;
+      background: #3b82f6;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-weight: 600;
+    }
+
+    .input-group button:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f3f4f6;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      animation: fadeTask 0.5s ease;
+    }
+
+    @keyframes fadeTask {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    .utang-info {
+      flex: 1;
+    }
+
+    .btn-delete {
+      background: #ef4444;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+      margin-left: 10px;
+    }
+
+    .btn-delete:hover {
+      background: #dc2626;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📜 List Utang</h2>
+    <div class="input-group">
+      <input type="text" id="nama" placeholder="Nama orang...">
+      <input type="number" id="jumlah" placeholder="Jumlah utang...">
+      <button onclick="addUtang()">Tambah</button>
+    </div>
+    <ul id="utangList"></ul>
+  </div>
+
+  <script>
+    function addUtang() {
+      let nama = document.getElementById("nama").value.trim();
+      let jumlah = document.getElementById("jumlah").value.trim();
+
+      if (nama === "" || jumlah === "") {
+        alert("Isi nama dan jumlah utang!");
+        return;
+      }
+
+      let li = document.createElement("li");
+
+      // Checkbox untuk menandai lunas
+      let checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.onchange = function() {
+        if (checkbox.checked) {
+          li.remove(); // otomatis hilang kalau dicentang
+        }
+      };
+
+      let span = document.createElement("span");
+      span.className = "utang-info";
+      span.textContent = `${nama} - Rp${jumlah}`;
+
+      let delBtn = document.createElement("button");
+      delBtn.textContent = "Hapus";
+      delBtn.className = "btn-delete";
+      delBtn.onclick = function() {
+        li.remove();
+      };
+
+      li.appendChild(checkbox);
+      li.appendChild(span);
+      li.appendChild(delBtn);
+
+      document.getElementById("utangList").appendChild(li);
+
+      // reset input
+      document.getElementById("nama").value = "";
+      document.getElementById("jumlah").value = "";
+    }
+  </script>
+</body>
+</html>
     }
 
     @keyframes fadeIn {
@@ -173,5 +320,6 @@
   </script>
 </body>
 </html>
+
 
 
