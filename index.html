@@ -6,9 +6,7 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: 'Poppins', sans-serif;
@@ -81,18 +79,11 @@
       transform: scale(1.05);
     }
 
-    p {
-      text-align: center;
-      font-size: 13px;
-      color: #444;
-      margin-bottom: 15px;
-    }
-
     ul {
       list-style: none;
       padding: 0;
       margin: 0;
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
     }
 
@@ -145,7 +136,6 @@
       <input type="text" id="taskInput" placeholder="Tambah tugas...">
       <button onclick="addTask()">Tambah</button>
     </div>
-    <p>Pembuat : <strong>Bima Tri Nanda</strong></p>
     <ul id="taskList"></ul>
   </div>
 
@@ -183,89 +173,3 @@
   </script>
 </body>
 </html>
-      cursor: pointer;
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f9fafb;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-    }
-
-    li.completed span {
-      text-decoration: line-through;
-      color: gray;
-    }
-
-    .btn-delete {
-      background: #ef4444;
-      border: none;
-      color: white;
-      padding: 5px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>My To-Do List</h2>
-    <div class="input-group">
-      <input type="text" id="taskInput" placeholder="Tambah tugas...">
-      <button onclick="addTask()">Tambah</button>
-    </div>
-    <br>
-    <p>Pembuat : Bima Tri Nanda</p>
-    <ul id="taskList"></ul>
-  </div>
-
-  <script>
-    function addTask() {
-      let input = document.getElementById("taskInput");
-      let taskText = input.value.trim();
-
-      if (taskText === "") {
-        alert("Isi dulu tugasnya!");
-        return;
-      }
-
-      let li = document.createElement("li");
-
-      let span = document.createElement("span");
-      span.textContent = taskText;
-      span.style.cursor = "pointer";
-      span.onclick = function() {
-        li.classList.toggle("completed");
-      };
-
-      let delBtn = document.createElement("button");
-      delBtn.textContent = "Hapus";
-      delBtn.className = "btn-delete";
-      delBtn.onclick = function() {
-        li.remove();
-      };
-
-      li.appendChild(span);
-      li.appendChild(delBtn);
-      document.getElementById("taskList").appendChild(li);
-
-      input.value = ""; // kosongkan input setelah ditambah
-    }
-  </script>
-</body>
-</html>
-
-
-
-
-
