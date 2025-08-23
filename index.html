@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>List Utang</title>
-  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; }
-
     body {
       font-family: 'Poppins', sans-serif;
       background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
@@ -32,13 +29,7 @@
       padding: 25px 30px;
       border-radius: 16px;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      width: 420px;
-      animation: fadeIn 1s ease;
-    }
-
-    @keyframes fadeIn {
-      from {opacity: 0; transform: translateY(20px);}
-      to {opacity: 1; transform: translateY(0);}
+      width: 380px;
     }
 
     h2 {
@@ -51,7 +42,6 @@
 
     .input-group {
       display: flex;
-      gap: 5px;
       margin-bottom: 15px;
     }
 
@@ -59,7 +49,7 @@
       flex: 1;
       padding: 12px;
       border: 2px solid #3b82f6;
-      border-radius: 10px;
+      border-radius: 10px 0 0 10px;
       outline: none;
       font-size: 14px;
     }
@@ -69,7 +59,7 @@
       border: none;
       background: #3b82f6;
       color: white;
-      border-radius: 10px;
+      border-radius: 0 10px 10px 0;
       cursor: pointer;
       transition: 0.3s;
       font-weight: 600;
@@ -96,16 +86,6 @@
       padding: 12px;
       border-radius: 10px;
       margin-bottom: 10px;
-      animation: fadeTask 0.5s ease;
-    }
-
-    @keyframes fadeTask {
-      from {opacity: 0; transform: translateY(10px);}
-      to {opacity: 1; transform: translateY(0);}
-    }
-
-    .utang-info {
-      flex: 1;
     }
 
     .btn-delete {
@@ -129,8 +109,7 @@
   <div class="container">
     <h2>📜 List Utang</h2>
     <div class="input-group">
-      <input type="text" id="nama" placeholder="Nama orang...">
-      <input type="number" id="jumlah" placeholder="Jumlah utang...">
+      <input type="text" id="utangInput" placeholder="Contoh: Budi - Rp50000">
       <button onclick="addUtang()">Tambah</button>
     </div>
     <ul id="utangList"></ul>
@@ -138,28 +117,27 @@
 
   <script>
     function addUtang() {
-      let nama = document.getElementById("nama").value.trim();
-      let jumlah = document.getElementById("jumlah").value.trim();
+      let input = document.getElementById("utangInput");
+      let text = input.value.trim();
 
-      if (nama === "" || jumlah === "") {
-        alert("Isi nama dan jumlah utang!");
+      if (text === "") {
+        alert("Isi dulu data utangnya!");
         return;
       }
 
       let li = document.createElement("li");
 
-      // Checkbox untuk menandai lunas
+      // checkbox untuk lunas
       let checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.onchange = function() {
         if (checkbox.checked) {
-          li.remove(); // otomatis hilang kalau dicentang
+          li.remove(); // hilang kalau dicentang (lunas)
         }
       };
 
       let span = document.createElement("span");
-      span.className = "utang-info";
-      span.textContent = `${nama} - Rp${jumlah}`;
+      span.textContent = text;
 
       let delBtn = document.createElement("button");
       delBtn.textContent = "Hapus";
@@ -174,152 +152,8 @@
 
       document.getElementById("utangList").appendChild(li);
 
-      // reset input
-      document.getElementById("nama").value = "";
-      document.getElementById("jumlah").value = "";
+      input.value = ""; // reset input
     }
   </script>
 </body>
 </html>
-    }
-
-    @keyframes fadeIn {
-      from {opacity: 0; transform: translateY(20px);}
-      to {opacity: 1; transform: translateY(0);}
-    }
-
-    h2 {
-      margin: 0 0 20px;
-      text-align: center;
-      color: #1f2937;
-      font-weight: 600;
-      font-size: 22px;
-    }
-
-    .input-group {
-      display: flex;
-      margin-bottom: 15px;
-    }
-
-    .input-group input {
-      flex: 1;
-      padding: 12px;
-      border: 2px solid #6366f1;
-      border-radius: 10px 0 0 10px;
-      outline: none;
-      font-size: 14px;
-    }
-
-    .input-group button {
-      padding: 12px 18px;
-      border: none;
-      background: #6366f1;
-      color: white;
-      border-radius: 0 10px 10px 0;
-      cursor: pointer;
-      transition: 0.3s;
-      font-weight: 600;
-    }
-
-    .input-group button:hover {
-      background: #4f46e5;
-      transform: scale(1.05);
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 220px;
-      overflow-y: auto;
-    }
-
-    li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f3f4f6;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      animation: fadeTask 0.5s ease;
-    }
-
-    @keyframes fadeTask {
-      from {opacity: 0; transform: translateY(10px);}
-      to {opacity: 1; transform: translateY(0);}
-    }
-
-    li.completed span {
-      text-decoration: line-through;
-      color: gray;
-    }
-
-    li span {
-      cursor: pointer;
-      flex: 1;
-    }
-
-    .btn-delete {
-      background: #ef4444;
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .btn-delete:hover {
-      background: #dc2626;
-      transform: scale(1.05);
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>📋 List Utang </h2>
-    <div class="input-group">
-      <input type="text" id="taskInput" placeholder="Tambah tugas...">
-      <button onclick="addTask()">Tambah</button>
-    </div>
-    <ul id="taskList"></ul>
-  </div>
-
-  <script>
-    function addTask() {
-      let input = document.getElementById("taskInput");
-      let taskText = input.value.trim();
-
-      if (taskText === "") {
-        alert("Isi dulu tugasnya!");
-        return;
-      }
-
-      let li = document.createElement("li");
-
-      let span = document.createElement("span");
-      span.textContent = taskText;
-      span.onclick = function() {
-        li.classList.toggle("completed");
-      };
-
-      let delBtn = document.createElement("button");
-      delBtn.textContent = "Hapus";
-      delBtn.className = "btn-delete";
-      delBtn.onclick = function() {
-        li.remove();
-      };
-
-      li.appendChild(span);
-      li.appendChild(delBtn);
-      document.getElementById("taskList").appendChild(li);
-
-      input.value = ""; // kosongkan input setelah ditambah
-    }
-  </script>
-</body>
-</html>
-
-
-
