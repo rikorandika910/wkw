@@ -37,7 +37,6 @@
   // === Tambahkan lagu-lagu kamu di sini ===
   const songs = [
     { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3" },
-    // Contoh tambahan:
     { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" },
     { title: "Lagu 3", url: "file3.mp3" }
   ];
@@ -45,22 +44,32 @@
   const audio = document.getElementById("audio");
   const playlist = document.getElementById("playlist");
 
+  let currentIndex = 0; // untuk tahu lagu ke berapa yang sedang berjalan
+
+  // fungsi load & play lagu
+  function playSong(index) {
+    currentIndex = index;
+    audio.src = songs[index].url;
+    audio.play();
+  }
+
   // generate playlist
   songs.forEach((song, index) => {
     const li = document.createElement("li");
     li.textContent = song.title;
-    li.addEventListener("click", () => {
-      audio.src = song.url;
-      audio.play();
-    });
+    li.addEventListener("click", () => playSong(index));
     playlist.appendChild(li);
 
-    // set lagu pertama otomatis
-    if (index === 0) audio.src = song.url;
+    if (index === 0) audio.src = song.url; // set lagu awal
+  });
+
+  // === Auto next saat lagu selesai ===
+  audio.addEventListener("ended", () => {
+    currentIndex++;
+    if (currentIndex >= songs.length) currentIndex = 0; // balik ke lagu pertama (opsional)
+    playSong(currentIndex);
   });
 </script>
 
-</body>
-</html>
 
 
