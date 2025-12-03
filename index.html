@@ -1,176 +1,267 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Spotify Style Music Player</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flatline — Simple Player</title>
   <style>
-    body {
-      margin: 0;
-      background: #121212;
-      font-family: Arial, sans-serif;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#6ee7b7;
+      --muted:#94a3b8;
+      --glass: rgba(255,255,255,0.03);
     }
-
-    .player {
-      width: 350px;
-      background: #181818;
-      padding: 20px;
-      border-radius: 20px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:linear-gradient(180deg,#071226 0%, #071429 100%);
+      color: #e6eef8;
+      padding:20px;
     }
-
-    .cover {
-      width: 100%;
-      height: 300px;
-      background: #333;
-      border-radius: 15px;
-      background-size: cover;
-      background-position: center;
+    .player{
+      width:min(720px, 96%);
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius:12px;
+      padding:18px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.04);
     }
-
-    .title {
-      margin-top: 15px;
-      font-size: 20px;
-      font-weight: bold;
+    .meta{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      margin-bottom:12px;
     }
-
-    .artist {
-      font-size: 14px;
-      color: #b3b3b3;
-      margin-top: 3px;
+    .art{
+      width:72px;
+      height:72px;
+      border-radius:8px;
+      background:linear-gradient(135deg,#0b1220,#0f1724);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      color:var(--muted);
+      font-size:12px;
     }
-
-    .controls {
-      margin-top: 20px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
+    .info{
+      flex:1;
     }
-
-    button {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 20px;
-      cursor: pointer;
+    .title{ font-size:18px; font-weight:600; margin:0; }
+    .subtitle{ margin:2px 0 0; color:var(--muted); font-size:13px; }
+    .controls{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-top:12px;
     }
-
-    .playlist {
-      margin-top: 25px;
-      max-height: 150px;
-      overflow-y: auto;
+    button{
+      background:var(--glass);
+      border:1px solid rgba(255,255,255,0.03);
+      color:inherit;
+      padding:8px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      font-weight:600;
     }
-
-    .song {
-      padding: 10px;
-      border-bottom: 1px solid #333;
-      cursor: pointer;
+    .progress-wrap{
+      margin-top:14px;
     }
-
-    .song:hover {
-      background: #222;
+    .progress{
+      width:100%;
+      height:10px;
+      appearance:none;
+      background:rgba(255,255,255,0.06);
+      border-radius:999px;
+      outline:none;
+      -webkit-appearance:none;
+    }
+    .progress::-webkit-slider-thumb{
+      -webkit-appearance:none;
+      width:14px;height:14px;border-radius:50%;
+      background:var(--accent);box-shadow:0 2px 6px rgba(0,0,0,0.4);
+      border:2px solid rgba(255,255,255,0.9);
+      margin-top:-2px;
+    }
+    .time{
+      display:flex;
+      justify-content:space-between;
+      font-size:13px;
+      color:var(--muted);
+      margin-top:6px;
+    }
+    .extras{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-left:auto;
+    }
+    input[type="range"]{ width:120px; }
+    a.download{
+      text-decoration:none;
+      color:inherit;
+      border:1px solid rgba(255,255,255,0.04);
+      padding:6px 8px;border-radius:8px;
+      background:transparent;
+      font-size:13px;
+    }
+    .note{ font-size:13px;color:var(--muted); margin-top:10px; }
+    @media (max-width:480px){
+      .meta{ flex-direction:row; gap:10px; }
+      .art{ width:56px;height:56px;font-size:11px; }
     }
   </style>
 </head>
 <body>
-
-  <div class="player">
-    <div class="cover" id="cover"></div>
-    <div class="title" id="title">Judul Lagu</div>
-    <div class="artist" id="artist">Artist</div>
-
-    <audio id="audio"></audio>
-
-    <div class="controls">
-      <button onclick="prevSong()">⏮</button>
-      <button onclick="togglePlay()">⏯</button>
-      <button onclick="nextSong()">⏭</button>
+  <main class="player" aria-label="Audio player for Flatline">
+    <div class="meta">
+      <div class="art" id="art">FL</div>
+      <div class="info">
+        <p class="title" id="title">Flatline</p>
+        <p class="subtitle" id="artist">Artist: (edit di GitHub)</p>
+      </div>
+      <div class="extras">
+        <!-- Download link will be populated by script -->
+        <a id="downloadLink" class="download" href="#" download>Download</a>
+      </div>
     </div>
 
-    <div class="playlist" id="playlist"></div>
-  </div>
+    <!-- Audio element (hidden). Ganti src di bawah sesuai file kamu. -->
+    <audio id="audio" preload="metadata"></audio>
 
-<script>
-  const songs = [
-    {
-  title: "Flatline",
-  artist: "Justin Bieber",
-  src: "Flatline.mp3",
-  cover: "covers/flatline.jpg"
-}
+    <!-- Controls -->
+    <div class="controls">
+      <button id="playBtn" title="Play / Pause">Play ▶</button>
+      <button id="stopBtn" title="Stop">Stop ■</button>
+      <button id="rewBtn" title="Rewind 10s">«10s</button>
+      <button id="fwdBtn" title="Forward 10s">10s»</button>
 
-    {
-      title: "Song 1",
-      artist: "Artist A",
-      src: "songs/song1.mp3",
-      cover: "covers/cover1.jpg"
-    },
-    {
-      title: "Song 2",
-      artist: "Artist B",
-      src: "songs/song2.mp3",
-      cover: "covers/cover2.jpg"
-    },
-    {
-      title: "Song 3",
-      artist: "Artist C",
-      src: "songs/song3.mp3",
-      cover: "covers/cover3.jpg"
+      <div style="width:12px"></div>
+
+      <label for="vol" class="subtitle" style="margin:0 6px 0 0">Vol</label>
+      <input id="vol" type="range" min="0" max="1" step="0.01" value="1">
+
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <input id="progress" class="progress" type="range" value="0" min="0" step="0.01" />
+      <div class="time">
+        <span id="current">0:00</span>
+        <span id="duration">0:00</span>
+      </div>
+    </div>
+
+    <p class="note">Cara edit: buka file <code>index.html</code> di repo GitHub dan ganti variabel <code>rawUrl</code> atau gunakan path relatif jika file mp3 ada di folder yang sama.</p>
+  </main>
+
+  <script>
+    // ======= EDIT DI SINI jika perlu =======
+    // Jika file mp3 ada di repo-mu, gunakan URL raw GitHub:
+    // Contoh raw URL dari repo: https://raw.githubusercontent.com/ri korandika910/wkw/main/Flatline.mp3
+    // (sudah otomatis mengarahkan ke raw; ganti sesuai repo kamu)
+    const rawUrl = "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3";
+    // Jika mp3 ada di folder sama dalam repo (mis. /Flatline.mp3), kamu bisa pakai "Flatline.mp3" (relative).
+    // ======= TIDAK PERLU EDIT SELANJUTNYA =======
+
+    const audio = document.getElementById("audio");
+    const playBtn = document.getElementById("playBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const rewBtn = document.getElementById("rewBtn");
+    const fwdBtn = document.getElementById("fwdBtn");
+    const vol = document.getElementById("vol");
+    const progress = document.getElementById("progress");
+    const current = document.getElementById("current");
+    const durationEl = document.getElementById("duration");
+    const downloadLink = document.getElementById("downloadLink");
+
+    // set src
+    audio.src = rawUrl;
+    downloadLink.href = rawUrl;
+    // Add filename for download
+    downloadLink.setAttribute("download", "Flatline.mp3");
+
+    // Utility time format
+    function formatTime(t){
+      if (isNaN(t)) return "0:00";
+      const m = Math.floor(t/60);
+      const s = Math.floor(t%60).toString().padStart(2,"0");
+      return `${m}:${s}`;
     }
-  ];
 
-  let index = 0;
-  const audio = document.getElementById("audio");
-  const title = document.getElementById("title");
-  const artist = document.getElementById("artist");
-  const cover = document.getElementById("cover");
+    // Update duration when metadata loaded
+    audio.addEventListener("loadedmetadata", ()=>{
+      durationEl.textContent = formatTime(audio.duration);
+      progress.max = audio.duration;
+    });
 
-  function loadSong(i) {
-    index = i;
-    audio.src = songs[i].src;
-    title.textContent = songs[i].title;
-    artist.textContent = songs[i].artist;
-    cover.style.backgroundImage = `url('${songs[i].cover}')`;
-    audio.play();
-  }
+    // Update progress while playing
+    audio.addEventListener("timeupdate", ()=>{
+      progress.value = audio.currentTime;
+      current.textContent = formatTime(audio.currentTime);
+    });
 
-  function togglePlay() {
-    audio.paused ? audio.play() : audio.pause();
-  }
+    // Play / Pause
+    playBtn.addEventListener("click", ()=>{
+      if (audio.paused){
+        audio.play().catch(err => {
+          // Autoplay often blocked by browsers; show friendly message in console
+          console.warn("Play blocked by browser (user gesture needed).", err);
+        });
+        playBtn.textContent = "Pause ❚❚";
+      } else {
+        audio.pause();
+        playBtn.textContent = "Play ▶";
+      }
+    });
 
-  function nextSong() {
-    index = (index + 1) % songs.length;
-    loadSong(index);
-  }
+    // Stop
+    stopBtn.addEventListener("click", ()=>{
+      audio.pause();
+      audio.currentTime = 0;
+      playBtn.textContent = "Play ▶";
+    });
 
-  function prevSong() {
-    index = (index - 1 + songs.length) % songs.length;
-    loadSong(index);
-  }
+    // Rewind / Forward 10s
+    rewBtn.addEventListener("click", ()=> {
+      audio.currentTime = Math.max(0, audio.currentTime - 10);
+    });
+    fwdBtn.addEventListener("click", ()=> {
+      audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 10);
+    });
 
-  audio.addEventListener("ended", nextSong);
+    // Volume
+    vol.addEventListener("input", ()=> {
+      audio.volume = parseFloat(vol.value);
+    });
 
-  const playlistDiv = document.getElementById("playlist");
-  songs.forEach((s, i) => {
-    const div = document.createElement("div");
-    div.className = "song";
-    div.textContent = s.title + " - " + s.artist;
-    div.onclick = () => loadSong(i);
-    playlistDiv.appendChild(div);
-  });
+    // Seek with progress bar
+    progress.addEventListener("input", ()=> {
+      audio.currentTime = parseFloat(progress.value);
+    });
 
-  loadSong(0);
-</script>
+    // When audio ends
+    audio.addEventListener("ended", ()=> {
+      playBtn.textContent = "Play ▶";
+    });
 
+    // If user clicks the download link, open in new tab (for raw GitHub) - keep default behavior.
+    downloadLink.addEventListener("click", (e)=>{
+      // nothing special
+    });
+
+    // Accessibility: allow space to toggle
+    window.addEventListener("keydown", (e)=>{
+      if (e.code === "Space" && document.activeElement.tagName !== "INPUT") {
+        e.preventDefault();
+        playBtn.click();
+      }
+    });
+  </script>
 </body>
 </html>
-
-
-
-
-
