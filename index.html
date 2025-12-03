@@ -34,42 +34,49 @@
 </div>
 
 <script>
-  // === Tambahkan lagu-lagu kamu di sini ===
   const songs = [
     { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3" },
     { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" },
-    { title: "Lagu 3", url: "file3.mp3" }
+    { title: "Hold Me Down", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3" }
   ];
 
   const audio = document.getElementById("audio");
   const playlist = document.getElementById("playlist");
 
-  let currentIndex = 0; // untuk tahu lagu ke berapa yang sedang berjalan
+  let currentIndex = 0;
 
-  // fungsi load & play lagu
-  function playSong(index) {
+  function loadSong(index) {
     currentIndex = index;
     audio.src = songs[index].url;
-    audio.play();
   }
 
-  // generate playlist
+  function playSong(index) {
+    loadSong(index);
+    audio.play().catch(err => console.log("Autoplay blocked:", err));
+  }
+
+  // Generate playlist
   songs.forEach((song, index) => {
     const li = document.createElement("li");
     li.textContent = song.title;
     li.addEventListener("click", () => playSong(index));
     playlist.appendChild(li);
-
-    if (index === 0) audio.src = song.url; // set lagu awal
   });
 
-  // === Auto next saat lagu selesai ===
+  // Set lagu pertama
+  loadSong(0);
+
+  // === AUTO NEXT FIX ===
   audio.addEventListener("ended", () => {
-    currentIndex++;
-    if (currentIndex >= songs.length) currentIndex = 0; // balik ke lagu pertama (opsional)
-    playSong(currentIndex);
+    let next = currentIndex + 1;
+    if (next >= songs.length) next = 0;
+
+    loadSong(next);
+
+    // Pemutarannya HARUS dilakukan setelah onended,
+    // dengan gesture sebelumnya dianggap valid.
+    setTimeout(() => {
+      audio.play().catch(err => console.warn("Autoplay prevented:", err));
+    }, 200);
   });
 </script>
-
-
-
