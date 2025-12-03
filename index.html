@@ -49,10 +49,7 @@
     text-shadow: 0 0 12px #00ffcc;
   }
 
-  ul {
-    list-style: none;
-    padding: 0;
-  }
+  ul { list-style: none; padding: 0; }
 
   li {
     margin: 8px 0;
@@ -76,13 +73,12 @@
     background: rgba(0, 255, 200, 0.35) !important;
     box-shadow: 0 0 15px #00ffcc;
   }
-
 </style>
 </head>
 
 <body>
 
-<h2>My Favorit Music</h2>
+<h2>My Favorite Music</h2>
 
 <div class="player">
   <audio id="audio" controls></audio>
@@ -91,13 +87,13 @@
   <ul id="playlist"></ul>
 </div>
 
+<script>
   const songs = [
-  { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3" },
-  { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" },
-  { title: "Hold Me Down", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3" },
-  { title: "You Da One", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/You Da One.mp3" },
-
-];
+    { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3" },
+    { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" },
+    { title: "Hold Me Down", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3" },
+    { title: "You Da One", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/You Da One.mp3" }
+  ];
 
   const audio = document.getElementById("audio");
   const playlist = document.getElementById("playlist");
@@ -144,6 +140,3 @@
 
 </body>
 </html>
-
-
-
