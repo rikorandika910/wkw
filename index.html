@@ -1,159 +1,164 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>List Utang</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotify Style Music Player</title>
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
-      background-size: 300% 300%;
-      animation: gradientBG 10s ease infinite;
+      margin: 0;
+      background: #121212;
+      font-family: Arial, sans-serif;
+      color: white;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
-      margin: 0;
     }
 
-    @keyframes gradientBG {
-      0% {background-position: 0% 50%;}
-      50% {background-position: 100% 50%;}
-      100% {background-position: 0% 50%;}
+    .player {
+      width: 350px;
+      background: #181818;
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
 
-    .container {
-      background: #ffffffcc;
-      backdrop-filter: blur(10px);
-      padding: 25px 30px;
-      border-radius: 16px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      width: 380px;
+    .cover {
+      width: 100%;
+      height: 300px;
+      background: #333;
+      border-radius: 15px;
+      background-size: cover;
+      background-position: center;
     }
 
-    h2 {
-      margin: 0 0 20px;
-      text-align: center;
-      color: #1f2937;
-      font-weight: 600;
-      font-size: 22px;
+    .title {
+      margin-top: 15px;
+      font-size: 20px;
+      font-weight: bold;
     }
 
-    .input-group {
-      display: flex;
-      margin-bottom: 15px;
-    }
-
-    .input-group input {
-      flex: 1;
-      padding: 12px;
-      border: 2px solid #3b82f6;
-      border-radius: 10px 0 0 10px;
-      outline: none;
+    .artist {
       font-size: 14px;
+      color: #b3b3b3;
+      margin-top: 3px;
     }
 
-    .input-group button {
-      padding: 12px 18px;
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    button {
+      background: none;
       border: none;
-      background: #3b82f6;
       color: white;
-      border-radius: 0 10px 10px 0;
+      font-size: 20px;
       cursor: pointer;
-      transition: 0.3s;
-      font-weight: 600;
     }
 
-    .input-group button:hover {
-      background: #2563eb;
-      transform: scale(1.05);
-    }
-
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 250px;
+    .playlist {
+      margin-top: 25px;
+      max-height: 150px;
       overflow-y: auto;
     }
 
-    li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #f3f4f6;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-    }
-
-    .btn-delete {
-      background: #ef4444;
-      border: none;
-      color: white;
-      padding: 6px 12px;
-      border-radius: 8px;
+    .song {
+      padding: 10px;
+      border-bottom: 1px solid #333;
       cursor: pointer;
-      transition: 0.3s;
-      margin-left: 10px;
     }
 
-    .btn-delete:hover {
-      background: #dc2626;
-      transform: scale(1.05);
+    .song:hover {
+      background: #222;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>📜 List Utang</h2>
-    <div class="input-group">
-      <input type="text" id="utangInput" placeholder="Contoh: Budi - Rp50000">
-      <button onclick="addUtang()">Tambah</button>
+
+  <div class="player">
+    <div class="cover" id="cover"></div>
+    <div class="title" id="title">Judul Lagu</div>
+    <div class="artist" id="artist">Artist</div>
+
+    <audio id="audio"></audio>
+
+    <div class="controls">
+      <button onclick="prevSong()">⏮</button>
+      <button onclick="togglePlay()">⏯</button>
+      <button onclick="nextSong()">⏭</button>
     </div>
-    <ul id="utangList"></ul>
+
+    <div class="playlist" id="playlist"></div>
   </div>
 
-  <script>
-    function addUtang() {
-      let input = document.getElementById("utangInput");
-      let text = input.value.trim();
-
-      if (text === "") {
-        alert("Isi dulu data utangnya!");
-        return;
-      }
-
-      let li = document.createElement("li");
-
-      // checkbox untuk lunas
-      let checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.onchange = function() {
-        if (checkbox.checked) {
-          li.remove(); // hilang kalau dicentang (lunas)
-        }
-      };
-
-      let span = document.createElement("span");
-      span.textContent = text;
-
-      let delBtn = document.createElement("button");
-      delBtn.textContent = "Hapus";
-      delBtn.className = "btn-delete";
-      delBtn.onclick = function() {
-        li.remove();
-      };
-
-      li.appendChild(checkbox);
-      li.appendChild(span);
-      li.appendChild(delBtn);
-
-      document.getElementById("utangList").appendChild(li);
-
-      input.value = ""; // reset input
+<script>
+  const songs = [
+    {
+      title: "Song 1",
+      artist: "Artist A",
+      src: "songs/song1.mp3",
+      cover: "covers/cover1.jpg"
+    },
+    {
+      title: "Song 2",
+      artist: "Artist B",
+      src: "songs/song2.mp3",
+      cover: "covers/cover2.jpg"
+    },
+    {
+      title: "Song 3",
+      artist: "Artist C",
+      src: "songs/song3.mp3",
+      cover: "covers/cover3.jpg"
     }
-  </script>
+  ];
+
+  let index = 0;
+  const audio = document.getElementById("audio");
+  const title = document.getElementById("title");
+  const artist = document.getElementById("artist");
+  const cover = document.getElementById("cover");
+
+  function loadSong(i) {
+    index = i;
+    audio.src = songs[i].src;
+    title.textContent = songs[i].title;
+    artist.textContent = songs[i].artist;
+    cover.style.backgroundImage = `url('${songs[i].cover}')`;
+    audio.play();
+  }
+
+  function togglePlay() {
+    audio.paused ? audio.play() : audio.pause();
+  }
+
+  function nextSong() {
+    index = (index + 1) % songs.length;
+    loadSong(index);
+  }
+
+  function prevSong() {
+    index = (index - 1 + songs.length) % songs.length;
+    loadSong(index);
+  }
+
+  audio.addEventListener("ended", nextSong);
+
+  const playlistDiv = document.getElementById("playlist");
+  songs.forEach((s, i) => {
+    const div = document.createElement("div");
+    div.className = "song";
+    div.textContent = s.title + " - " + s.artist;
+    div.onclick = () => loadSong(i);
+    playlistDiv.appendChild(div);
+  });
+
+  loadSong(0);
+</script>
+
 </body>
 </html>
