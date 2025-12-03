@@ -3,31 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Music Player</title>
+<title>Neon Glass Music Player</title>
 
 <style>
-  body { 
-    font-family: Arial; background:#111; color:white; 
-    padding:20px; text-align:center;
+  body {
+    margin: 0;
+    background: radial-gradient(circle at top, #1a1a1a, #000);
+    font-family: Arial;
+    color: white;
+    padding: 20px;
+    text-align: center;
   }
+
+  h2 {
+    margin-bottom: 25px;
+    font-size: 28px;
+    color: #00eaff;
+    text-shadow: 0 0 10px #00eaff;
+  }
+
   .player {
-    max-width:400px; margin:auto; background:#222; 
-    padding:20px; border-radius:10px;
+    max-width: 420px;
+    margin: auto;
+    padding: 25px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow:
+      0 0 20px rgba(0, 238, 255, 0.4),
+      inset 0 0 20px rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
-  ul { list-style:none; padding:0; }
+
+  audio {
+    width: 100%;
+    border-radius: 10px;
+    filter: drop-shadow(0 0 10px #00eaff);
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    margin: 15px 0;
+    font-size: 22px;
+    color: #00ffcc;
+    text-shadow: 0 0 12px #00ffcc;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
   li {
-    background:#333; margin:5px 0; padding:10px;
-    border-radius:6px; cursor:pointer;
+    margin: 8px 0;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(6px);
   }
-  li:hover { background:#444; }
+
+  li:hover {
+    background: rgba(0, 255, 200, 0.25);
+    box-shadow: 0 0 10px #00ffcc;
+    transform: translateY(-2px);
+  }
+
+  .active {
+    background: rgba(0, 255, 200, 0.35) !important;
+    box-shadow: 0 0 15px #00ffcc;
+  }
+
 </style>
 </head>
+
 <body>
 
 <h2>My Favorit Music</h2>
 
 <div class="player">
-  <audio id="audio" controls style="width:100%; margin-bottom:15px;"></audio>
+  <audio id="audio" controls></audio>
 
   <h3>Playlist</h3>
   <ul id="playlist"></ul>
@@ -45,9 +103,16 @@
 
   let currentIndex = 0;
 
+  function updateActive() {
+    [...playlist.children].forEach((li, i) => {
+      li.classList.toggle("active", i === currentIndex);
+    });
+  }
+
   function loadSong(index) {
     currentIndex = index;
     audio.src = songs[index].url;
+    updateActive();
   }
 
   function playSong(index) {
@@ -55,7 +120,6 @@
     audio.play().catch(err => console.log("Autoplay blocked:", err));
   }
 
-  // Generate playlist
   songs.forEach((song, index) => {
     const li = document.createElement("li");
     li.textContent = song.title;
@@ -63,20 +127,19 @@
     playlist.appendChild(li);
   });
 
-  // Set lagu pertama
   loadSong(0);
 
-  // === AUTO NEXT FIX ===
   audio.addEventListener("ended", () => {
     let next = currentIndex + 1;
     if (next >= songs.length) next = 0;
 
     loadSong(next);
 
-    // Pemutarannya HARUS dilakukan setelah onended,
-    // dengan gesture sebelumnya dianggap valid.
     setTimeout(() => {
       audio.play().catch(err => console.warn("Autoplay prevented:", err));
     }, 200);
   });
 </script>
+
+</body>
+</html>
