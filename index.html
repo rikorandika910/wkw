@@ -1,145 +1,415 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neon Glass Music Player</title>
-
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Neon Glass Player — Enhanced</title>
 <style>
-  body {
-    margin: 0;
-    background: radial-gradient(circle at top, #1a1a1a, #000);
-    font-family: Arial;
-    color: white;
-    padding: 20px;
-    text-align: center;
+  :root{
+    --bg1:#071726;
+    --glass: rgba(255,255,255,0.05);
+    --neon: #00ffd1;
+    --muted: #9fb4c4;
+  }
+  html,body{height:100%; margin:0;}
+  body{
+    font-family: Inter, Arial, sans-serif;
+    color: #e9fbff;
+    background: radial-gradient(circle at 20% 10%, #071a2a 0%, #000 60%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+    overflow:hidden;
   }
 
-  h2 {
-    margin-bottom: 25px;
-    font-size: 28px;
-    color: #00eaff;
-    text-shadow: 0 0 10px #00eaff;
+  /* canvas background */
+  #bgCanvas{
+    position:fixed; inset:0; z-index:0;
   }
 
-  .player {
-    max-width: 420px;
-    margin: auto;
-    padding: 25px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow:
-      0 0 20px rgba(0, 238, 255, 0.4),
-      inset 0 0 20px rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+  .wrap{
+    position:relative;
+    z-index:2;
+    width:min(460px, 96%);
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:16px;
+    padding:18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 40px rgba(0,255,200,0.02);
+    backdrop-filter: blur(8px);
   }
 
-  audio {
-    width: 100%;
-    border-radius: 10px;
-    filter: drop-shadow(0 0 10px #00eaff);
-    margin-bottom: 20px;
+  .top{
+    display:flex; gap:14px; align-items:center;
   }
 
-  h3 {
-    margin: 15px 0;
-    font-size: 22px;
-    color: #00ffcc;
-    text-shadow: 0 0 12px #00ffcc;
+  .cover{
+    width:96px; height:96px; border-radius:10px;
+    background:linear-gradient(135deg,#0b1220,#14202a);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; color:var(--muted); font-size:14px;
+    overflow:hidden; border:1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 18px rgba(0,255,200,0.03);
   }
+  .info{flex:1; text-align:left;}
+  .title{font-size:18px; margin:0 0 6px; color:#dffaf6;}
+  .artist{font-size:13px; margin:0; color:var(--muted);}
 
-  ul { list-style: none; padding: 0; }
-
-  li {
-    margin: 8px 0;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 18px;
-    transition: 0.2s;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(6px);
+  /* controls */
+  .controls{ display:flex; align-items:center; gap:8px; margin-top:14px; }
+  .btn{
+    background:transparent; border:1px solid rgba(255,255,255,0.06);
+    padding:8px 10px; border-radius:10px; color:inherit; cursor:pointer;
+    font-weight:600; backdrop-filter: blur(6px);
   }
+  .btn:hover{ transform:translateY(-3px); box-shadow:0 6px 20px rgba(0,255,200,0.06); }
 
-  li:hover {
-    background: rgba(0, 255, 200, 0.25);
-    box-shadow: 0 0 10px #00ffcc;
-    transform: translateY(-2px);
-  }
+  .play{ padding:10px 14px; font-size:15px; }
 
-  .active {
-    background: rgba(0, 255, 200, 0.35) !important;
-    box-shadow: 0 0 15px #00ffcc;
+  .right-controls{ margin-left:auto; display:flex; gap:8px; align-items:center; }
+
+  /* progress */
+  .progress-wrap{ margin-top:14px; }
+  .progress{ width:100%; -webkit-appearance:none; height:10px; border-radius:999px; background: rgba(255,255,255,0.06); }
+  .progress::-webkit-slider-thumb{ -webkit-appearance:none; width:14px;height:14px;border-radius:50%; background:var(--neon); border:2px solid rgba(255,255,255,0.95); margin-top:-2px; }
+  .time{ display:flex; justify-content:space-between; color:var(--muted); font-size:13px; margin-top:6px; }
+
+  /* small toggles */
+  .toggle{ padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); cursor:pointer; font-size:13px; }
+  .toggle.active{ background: rgba(0,255,200,0.18); box-shadow:0 0 10px rgba(0,255,160,0.12); color:#012; }
+
+  /* footer note */
+  .note{ font-size:12px; color:var(--muted); margin-top:10px; text-align:center; }
+
+  @media (max-width:420px){
+    .top{ flex-direction:row; }
+    .info{ font-size:14px; }
   }
 </style>
 </head>
-
 <body>
 
-<h2>My Favorite Music</h2>
+<canvas id="bgCanvas"></canvas>
 
-<div class="player">
-  <audio id="audio" controls></audio>
+<div class="wrap" role="region" aria-label="Music player">
+  <div class="top">
+    <div class="cover" id="cover">FL</div>
+    <div class="info">
+      <p class="title" id="title">Flatline</p>
+      <p class="artist" id="artist">(click play)</p>
 
-  <h3>Playlist</h3>
-  <ul id="playlist"></ul>
+      <div class="controls">
+        <button class="btn" id="prev">⏮️</button>
+        <button class="btn play" id="play">Play ▶</button>
+        <button class="btn" id="next">⏭️</button>
+
+        <div class="right-controls">
+          <button class="toggle" id="shuffle">🔀</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <input id="progress" class="progress" type="range" min="0" max="100" step="0.01" value="0">
+    <div class="time"><span id="cur">0:00</span><span id="dur">0:00</span></div>
+  </div>
+
+  <div class="note">Tip: klik Play sekali untuk aktifkan visualizer (browser izin audio required)</div>
 </div>
 
+<!-- Hidden audio element -->
+<audio id="audio" crossorigin="anonymous"></audio>
+
 <script>
-  const songs = [
-    { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3" },
-    { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" },
-    { title: "Hold Me Down", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3" },
-    { title: "You Da One", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/You Da One.mp3" },
-    { title: "Sahabat Jadi Cinta", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Sahabat Jadi Cinta.mp3" }
+/* ====== Playlist: tambahkan cover (url) jika ada; cover bisa tetap teks awal jika tidak ada gambar ====== */
+const songs = [
+  { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3", artist: "Artist A", cover: "" },
+  { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3", artist: "Artist B", cover: "" },
+  { title: "Hold Me Down", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold%20Me%20Down.mp3", artist: "Artist C", cover: "" },
+  { title: "You Da One", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/You%20Da%20One.mp3", artist: "Artist D", cover: "" }
+];
+
+const audio = document.getElementById('audio');
+const playBtn = document.getElementById('play');
+const prevBtn = document.getElementById('prev');
+const nextBtn = document.getElementById('next');
+const shuffleBtn = document.getElementById('shuffle');
+const coverEl = document.getElementById('cover');
+const titleEl = document.getElementById('title');
+const artistEl = document.getElementById('artist');
+const progress = document.getElementById('progress');
+const curEl = document.getElementById('cur');
+const durEl = document.getElementById('dur');
+
+let currentIndex = 0;
+let isPlaying = false;
+let isShuffle = false;
+
+/* ====== Load song metadata into UI ====== */
+function setCoverAndInfo(i){
+  const s = songs[i];
+  titleEl.textContent = s.title;
+  artistEl.textContent = s.artist || '';
+  if(s.cover){
+    coverEl.style.backgroundImage = `url("${s.cover}")`;
+    coverEl.style.backgroundSize = 'cover';
+    coverEl.textContent = '';
+  } else {
+    // fallback: initials
+    const initials = s.title.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    coverEl.style.backgroundImage = '';
+    coverEl.textContent = initials;
+  }
+}
+
+/* ====== play / pause handling ====== */
+function playCurrent(){
+  audio.play().then(()=> {
+    isPlaying = true;
+    playBtn.textContent = 'Pause ❚❚';
+  }).catch(err=>{
+    console.warn('Play blocked:', err);
+  });
+}
+function pauseCurrent(){
+  audio.pause();
+  isPlaying = false;
+  playBtn.textContent = 'Play ▶';
+}
+
+playBtn.addEventListener('click', ()=>{
+  if(!isPlaying){
+    // if audio src not set, load current
+    if(!audio.src) loadSong(currentIndex);
+    playCurrent();
+    // create audio context on first user gesture (visualizer)
+    if(!analyser) initVisualizer();
+  } else pauseCurrent();
+});
+
+/* ====== next / prev with shuffle logic ====== */
+function nextIndex(){
+  if(isShuffle){
+    let n = Math.floor(Math.random()*songs.length);
+    // avoid same index if >1 songs
+    if(songs.length>1){
+      while(n === currentIndex) n = Math.floor(Math.random()*songs.length);
+    }
+    return n;
+  } else {
+    return (currentIndex + 1) % songs.length;
+  }
+}
+function prevIndex(){
+  if(isShuffle) return Math.floor(Math.random()*songs.length);
+  return (currentIndex - 1 + songs.length) % songs.length;
+}
+
+nextBtn.addEventListener('click', ()=> {
+  changeSong(nextIndex(), true);
+});
+prevBtn.addEventListener('click', ()=> {
+  changeSong(prevIndex(), true);
+});
+
+shuffleBtn.addEventListener('click', ()=>{
+  isShuffle = !isShuffle;
+  shuffleBtn.classList.toggle('active', isShuffle);
+});
+
+/* ====== load/change song function ====== */
+function loadSong(i){
+  currentIndex = i;
+  audio.src = songs[i].url;
+  audio.crossOrigin = "anonymous";
+  setCoverAndInfo(i);
+  // update duration once metadata loaded
+  audio.addEventListener('loadedmetadata', ()=> {
+    durEl.textContent = formatTime(audio.duration);
+    progress.max = audio.duration;
+  }, { once: true });
+}
+
+function changeSong(i, autoPlay=false){
+  loadSong(i);
+  updateProgressUI(0, audio.duration || 0);
+  if(autoPlay){
+    // small timeout so browser treats as user action if invoked by button
+    setTimeout(()=> {
+      playCurrent();
+    }, 80);
+  }
+}
+
+/* ====== progress / seeking ====== */
+audio.addEventListener('timeupdate', ()=>{
+  if(!isFinite(audio.duration)) return;
+  progress.value = audio.currentTime;
+  updateProgressUI(audio.currentTime, audio.duration);
+});
+
+progress.addEventListener('input', (e)=>{
+  audio.currentTime = parseFloat(e.target.value);
+  updateProgressUI(audio.currentTime, audio.duration || 0);
+});
+
+function updateProgressUI(cur, dur){
+  curEl.textContent = formatTime(cur);
+  durEl.textContent = isFinite(dur) && dur>0 ? formatTime(dur) : '0:00';
+}
+
+/* ====== when song ends: go to next (shuffle aware) ====== */
+audio.addEventListener('ended', ()=>{
+  const n = nextIndex();
+  changeSong(n, true);
+});
+
+/* ====== util: time format ====== */
+function formatTime(t){
+  if(!isFinite(t) || t <= 0) return '0:00';
+  const m = Math.floor(t/60);
+  const s = Math.floor(t%60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+/* ====== initialize UI with first song ====== */
+loadSong(0);
+updateProgressUI(0,0);
+
+/* ====== VISUALIZER: animated background reacting to audio ====== */
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let analyser = null;
+let dataArray = null;
+let audioCtx = null;
+let sourceNode = null;
+
+function initVisualizer(){
+  try {
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+    sourceNode = audioCtx.createMediaElementSource(audio);
+    sourceNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    resizeCanvas();
+    animate();
+  } catch (e){
+    console.warn('Visualizer init failed:', e);
+  }
+}
+
+/* canvas sizing */
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* draw loop */
+function animate(){
+  requestAnimationFrame(animate);
+  if(!analyser) {
+    // gentle pulsing background when idle
+    drawIdle();
+    return;
+  }
+  analyser.getByteFrequencyData(dataArray);
+  // compute average amplitude
+  let sum = 0;
+  for(let i=0;i<dataArray.length;i++) sum += dataArray[i];
+  const avg = sum / dataArray.length; // 0-255
+
+  // clear
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // draw radial glow driven by avg
+  const maxRadius = Math.max(canvas.width, canvas.height) * 0.7;
+  const radius = Math.max(100, (avg/255) * maxRadius);
+
+  // gradient color depends on current song index
+  const colorSets = [
+    ['#002b36','#00ffe0'], // cyan
+    ['#1a0727','#ff6ec7'], // magenta
+    ['#07121a','#6ee7ff'], // light cyan
+    ['#140a2a','#ffd36e']  // amber
   ];
+  const cs = colorSets[currentIndex % colorSets.length];
+  const g = ctx.createRadialGradient(canvas.width*0.15, canvas.height*0.2, radius*0.05, canvas.width*0.5, canvas.height*0.5, radius);
+  g.addColorStop(0, hexToRgba(cs[1], 0.32));
+  g.addColorStop(0.6, hexToRgba(cs[1], 0.08));
+  g.addColorStop(1, hexToRgba(cs[0], 0.0));
 
-  const audio = document.getElementById("audio");
-  const playlist = document.getElementById("playlist");
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  let currentIndex = 0;
-
-  function updateActive() {
-    [...playlist.children].forEach((li, i) => {
-      li.classList.toggle("active", i === currentIndex);
-    });
+  // draw small moving particles based on frequency
+  const particleCount = Math.min(120, Math.floor(avg/2)+20);
+  for(let i=0;i<particleCount;i++){
+    const ang = (i / particleCount) * Math.PI * 2 + (performance.now()/8000)*(i%7);
+    const r = radius*0.7 + (i%7)*6;
+    const x = canvas.width*0.5 + Math.cos(ang) * r * (0.6 + Math.sin(performance.now()/5000 + i)*0.3);
+    const y = canvas.height*0.45 + Math.sin(ang) * r * 0.45;
+    const size = Math.max(0.6, (dataArray[i % dataArray.length]/255)*6);
+    ctx.beginPath();
+    ctx.fillStyle = hexToRgba(cs[1], 0.06 + Math.random()*0.14);
+    ctx.arc(x, y, size, 0, Math.PI*2);
+    ctx.fill();
   }
+}
 
-  function loadSong(index) {
-    currentIndex = index;
-    audio.src = songs[index].url;
-    updateActive();
-  }
+function drawIdle(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // soft slow gradient
+  const gradient = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  gradient.addColorStop(0, 'rgba(0,20,30,0.4)');
+  gradient.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // faint centered glow
+  ctx.beginPath();
+  const rg = ctx.createRadialGradient(canvas.width*0.5, canvas.height*0.4, 50, canvas.width*0.5, canvas.height*0.4, Math.max(canvas.width,canvas.height)*0.6);
+  rg.addColorStop(0, 'rgba(0,255,200,0.02)');
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
 
-  function playSong(index) {
-    loadSong(index);
-    audio.play().catch(err => console.log("Autoplay blocked:", err));
-  }
+/* tiny util */
+function hexToRgba(hex, alpha){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16);
+  const g = parseInt(h.substring(2,4),16);
+  const b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
-  songs.forEach((song, index) => {
-    const li = document.createElement("li");
-    li.textContent = song.title;
-    li.addEventListener("click", () => playSong(index));
-    playlist.appendChild(li);
-  });
+/* Initialize canvas size & idle draw */
+resizeCanvas();
+drawIdle();
 
-  loadSong(0);
+/* optional: keyboard shortcuts */
+window.addEventListener('keydown', (e)=>{
+  if(e.code === 'Space'){ e.preventDefault(); playBtn.click(); }
+  if(e.code === 'ArrowRight') nextBtn.click();
+  if(e.code === 'ArrowLeft') prevBtn.click();
+});
 
-  audio.addEventListener("ended", () => {
-    let next = currentIndex + 1;
-    if (next >= songs.length) next = 0;
+/* ensure when user picks next via UI we also ensure visualizer uses updated analyser (no change needed) */
+audio.addEventListener('play', ()=>{
+  isPlaying = true; playBtn.textContent = 'Pause ❚❚';
+  // resume audioCtx if suspended (some browsers require resume)
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+});
 
-    loadSong(next);
+/* if user changes song by calling changeSong, visualizer color uses currentIndex in animate() automatically */
 
-    setTimeout(() => {
-      audio.play().catch(err => console.warn("Autoplay prevented:", err));
-    }, 200);
-  });
+/* End of script */
 </script>
-
 </body>
 </html>
-
-
