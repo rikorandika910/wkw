@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neon Glass Player — Enhanced</title>
+<title>Neon Glass Player — Enhanced (Right Light)</title>
 <style>
   :root{
     --bg1:#071726;
@@ -359,7 +359,7 @@ function animate(){
   // clear
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  // draw radial glow driven by avg
+  // draw radial glow driven by avg (left light)
   const maxRadius = Math.max(canvas.width, canvas.height) * 0.7;
   const radius = Math.max(100, (avg/255) * maxRadius);
 
@@ -371,15 +371,28 @@ function animate(){
     ['#140a2a','#ffd36e']  // amber
   ];
   const cs = colorSets[currentIndex % colorSets.length];
-  const g = ctx.createRadialGradient(canvas.width*0.15, canvas.height*0.2, radius*0.05, canvas.width*0.5, canvas.height*0.5, radius);
-  g.addColorStop(0, hexToRgba(cs[1], 0.32));
-  g.addColorStop(0.6, hexToRgba(cs[1], 0.08));
-  g.addColorStop(1, hexToRgba(cs[0], 0.0));
 
-  ctx.fillStyle = g;
+  // Left main glow
+  const gLeft = ctx.createRadialGradient(canvas.width*0.15, canvas.height*0.2, radius*0.05, canvas.width*0.5, canvas.height*0.5, radius);
+  gLeft.addColorStop(0, hexToRgba(cs[1], 0.32));
+  gLeft.addColorStop(0.6, hexToRgba(cs[1], 0.08));
+  gLeft.addColorStop(1, hexToRgba(cs[0], 0.0));
+  ctx.fillStyle = gLeft;
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  // draw small moving particles based on frequency
+  // Right additional light (new): uses a complementary or shifted color and smaller radius
+  const rightColor = shadeHex(cs[1], -30); // slightly different tone
+  const gRight = ctx.createRadialGradient(canvas.width*0.85, canvas.height*0.6, radius*0.03, canvas.width*0.65, canvas.height*0.5, radius*0.6);
+  gRight.addColorStop(0, hexToRgba(rightColor, 0.26));
+  gRight.addColorStop(0.6, hexToRgba(rightColor, 0.06));
+  gRight.addColorStop(1, hexToRgba(cs[0], 0.0));
+  // draw on top with a soft composite
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = gRight;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // draw small moving particles based on frequency (left cluster)
   const particleCount = Math.min(120, Math.floor(avg/2)+20);
   for(let i=0;i<particleCount;i++){
     const ang = (i / particleCount) * Math.PI * 2 + (performance.now()/8000)*(i%7);
@@ -389,6 +402,20 @@ function animate(){
     const size = Math.max(0.6, (dataArray[i % dataArray.length]/255)*6);
     ctx.beginPath();
     ctx.fillStyle = hexToRgba(cs[1], 0.06 + Math.random()*0.14);
+    ctx.arc(x, y, size, 0, Math.PI*2);
+    ctx.fill();
+  }
+
+  // draw additional particles around the new right light (smaller, sparser)
+  const rightParticleCount = Math.min(60, Math.floor(avg/4)+8);
+  for(let j=0;j<rightParticleCount;j++){
+    const ang = (j / rightParticleCount) * Math.PI * 2 + (performance.now()/7000)*(j%5);
+    const rr = radius*0.45 + (j%5)*4;
+    const x = canvas.width*0.85 + Math.cos(ang) * rr * (0.4 + Math.cos(performance.now()/4000 + j)*0.25);
+    const y = canvas.height*0.6 + Math.sin(ang) * rr * 0.35;
+    const size = Math.max(0.4, (dataArray[(j*2) % dataArray.length]/255)*5);
+    ctx.beginPath();
+    ctx.fillStyle = hexToRgba(rightColor, 0.05 + Math.random()*0.12);
     ctx.arc(x, y, size, 0, Math.PI*2);
     ctx.fill();
   }
@@ -409,6 +436,15 @@ function drawIdle(){
   rg.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = rg;
   ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // idle right light (subtle)
+  const idleG = ctx.createRadialGradient(canvas.width*0.85, canvas.height*0.6, 20, canvas.width*0.75, canvas.height*0.5, Math.max(canvas.width,canvas.height)*0.4);
+  idleG.addColorStop(0, 'rgba(255,110,199,0.02)');
+  idleG.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = idleG;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.globalCompositeOperation = 'source-over';
 }
 
 /* tiny util */
@@ -418,6 +454,19 @@ function hexToRgba(hex, alpha){
   const g = parseInt(h.substring(2,4),16);
   const b = parseInt(h.substring(4,6),16);
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// simple shade function to shift hex brightness (positive to lighten, negative to darken)
+function shadeHex(hex, percent) {
+  const h = hex.replace('#','');
+  const num = parseInt(h,16);
+  let r = (num >> 16) + percent;
+  let g = ((num >> 8) & 0x00FF) + percent;
+  let b = (num & 0x0000FF) + percent;
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+  return `#${(r<<16 | g<<8 | b).toString(16).padStart(6,'0')}`;
 }
 
 /* Initialize canvas size & idle draw */
@@ -444,6 +493,3 @@ audio.addEventListener('play', ()=>{
 </script>
 </body>
 </html>
-
-
-
