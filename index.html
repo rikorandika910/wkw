@@ -2,465 +2,184 @@
 <html lang="id">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neon Glass Player — Circular Visualizer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simple Neon Music Player</title>
+
 <style>
   :root{
-    --bg1:#071726;
-    --glass: rgba(255,255,255,0.05);
-    --neon: #00ffd1;
-    --muted: #9fb4c4;
+    --bg: #0e0f1a;
+    --accent: #00ffd1;
+    --text: #eaffff;
   }
-  html,body{height:100%; margin:0;}
+
   body{
-    font-family: Inter, Arial, sans-serif;
-    color: #e9fbff;
-    background: radial-gradient(circle at 20% 10%, #071a2a 0%, #000 60%);
+    margin:0;
+    background:var(--bg);
+    font-family:Arial, sans-serif;
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:28px;
+  }
+
+  h2{ margin:6px 0 2px; }
+  p{ margin:0; color:#9cc; }
+
+  #player{
+    background:rgba(255,255,255,0.05);
+    padding:20px;
+    width:min(380px, 95%);
+    border-radius:16px;
+    border:1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(8px);
+    text-align:center;
+  }
+
+  #coverBox{
+    width:140px;
+    height:140px;
+    border-radius:50%;
+    margin:auto;
+    position:relative;
+    background:#111;
     display:flex;
     align-items:center;
     justify-content:center;
-    padding:24px;
+    font-size:26px;
+    font-weight:bold;
+    border:2px solid var(--accent);
     overflow:hidden;
   }
 
-  /* canvas background */
-  #bgCanvas{
-    position:fixed; inset:0; z-index:0;
+  #coverCanvas{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    pointer-events:none;
   }
 
-  .wrap{
-    position:relative;
-    z-index:2;
-    width:min(460px, 96%);
-    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-    border:1px solid rgba(255,255,255,0.06);
-    border-radius:16px;
-    padding:18px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6), 0 0 40px rgba(0,255,200,0.02);
-    backdrop-filter: blur(8px);
+  button{
+    padding:10px 20px;
+    margin-top:12px;
+    background:var(--accent);
+    color:#012;
+    border:none;
+    border-radius:8px;
+    font-weight:bold;
+    cursor:pointer;
   }
 
-  .top{
-    display:flex; gap:14px; align-items:center;
-  }
-
-  .cover{
-    width:96px; height:96px; border-radius:10px;
-    background:linear-gradient(135deg,#0b1220,#14202a);
-    display:flex; align-items:center; justify-content:center;
-    font-weight:700; color:var(--muted); font-size:14px;
-    overflow:hidden; border:1px solid rgba(255,255,255,0.06);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 18px rgba(0,255,200,0.03);
-    position:relative; /* important for overlay canvas */
-  }
-
-  /* canvas overlay inside cover for ring */
-  .cover-canvas{
-    position:absolute; inset:0; width:100%; height:100%;
-    pointer-events:none; z-index:3;
-    border-radius:10px;
-  }
-
-  .info{flex:1; text-align:left;}
-  .title{font-size:18px; margin:0 0 6px; color:#dffaf6;}
-  .artist{font-size:13px; margin:0; color:var(--muted);}
-
-  /* controls */
-  .controls{ display:flex; align-items:center; gap:8px; margin-top:14px; }
-  .btn{
-    background:transparent; border:1px solid rgba(255,255,255,0.06);
-    padding:8px 10px; border-radius:10px; color:inherit; cursor:pointer;
-    font-weight:600; backdrop-filter: blur(6px);
-  }
-  .btn:hover{ transform:translateY(-3px); box-shadow:0 6px 20px rgba(0,255,200,0.06); }
-
-  .play{ padding:10px 14px; font-size:15px; }
-
-  .right-controls{ margin-left:auto; display:flex; gap:8px; align-items:center; }
-
-  /* progress */
-  .progress-wrap{ margin-top:14px; }
-  .progress{ width:100%; -webkit-appearance:none; height:10px; border-radius:999px; background: rgba(255,255,255,0.06); }
-  .progress::-webkit-slider-thumb{ -webkit-appearance:none; width:14px;height:14px;border-radius:50%; background:var(--neon); border:2px solid rgba(255,255,255,0.95); margin-top:-2px; }
-  .time{ display:flex; justify-content:space-between; color:var(--muted); font-size:13px; margin-top:6px; }
-
-  /* small toggles */
-  .toggle{ padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.05); cursor:pointer; font-size:13px; }
-  .toggle.active{ background: rgba(0,255,200,0.18); box-shadow:0 0 10px rgba(0,255,160,0.12); color:#012; }
-
-  /* footer note */
-  .note{ font-size:12px; color:var(--muted); margin-top:10px; text-align:center; }
-
-  @media (max-width:420px){
-    .top{ flex-direction:row; }
-    .info{ font-size:14px; }
+  #progress{
+    width:100%;
+    margin-top:15px;
   }
 </style>
 </head>
 <body>
 
-<canvas id="bgCanvas"></canvas>
+<h2 id="songTitle">Song Title</h2>
+<p id="songArtist">Artist Name</p>
 
-<div class="wrap" role="region" aria-label="Music player">
-  <div class="top">
-    <div class="cover" id="cover">FL
-      <!-- canvas overlay for circular visualizer -->
-      <canvas class="cover-canvas" id="coverCanvas" aria-hidden="true"></canvas>
-    </div>
-
-    <div class="info">
-      <p class="title" id="title">Flatline</p>
-      <p class="artist" id="artist">(click play)</p>
-
-      <div class="controls">
-        <button class="btn" id="prev">⏮️</button>
-        <button class="btn play" id="play">Play ▶</button>
-        <button class="btn" id="next">⏭️</button>
-
-        <div class="right-controls">
-          <button class="toggle" id="shuffle">🔀</button>
-        </div>
-      </div>
-    </div>
+<div id="player">
+  <div id="coverBox">
+    <canvas id="coverCanvas"></canvas>
+    FL
   </div>
 
-  <div class="progress-wrap">
-    <input id="progress" class="progress" type="range" min="0" max="100" step="0.01" value="0">
-    <div class="time"><span id="cur">0:00</span><span id="dur">0:00</span></div>
-  </div>
+  <button id="playBtn">Play</button>
 
-  <div class="note">Tip: klik Play sekali untuk aktifkan visualizer (browser izin audio required)</div>
+  <input id="progress" type="range" value="0" min="0" max="100">
 </div>
 
-<!-- Hidden audio element -->
 <audio id="audio" crossorigin="anonymous"></audio>
 
 <script>
-/* ====== playlist (sama seperti milikmu) ====== */
 const songs = [
-  { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3", artist: "Justin Bieber" },
-  { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3", artist: "Rainy Bear" },
-  { title: "Hold Me Down", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3", artist: "Daniel Caesar" },
-  { title: "You Da One", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/You Da One.mp3", artist: "Rihanna" },
-  { title: "Sahabat Jadi Cinta", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Sahabat Jadi Cinta.mp3", artist: "Zigaz" },
-  { title: "The 1975 - About You (Official)", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/The 1975 - About You (Official).mp3", artist: "The 1975" },
-  { title: "Girl You Loud", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Chris Brown - Girl You Loud (Lyrics) ft. Tyga.mp3", artist: "Chris Brown" },
-  { title: "Multo", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Multo - Cup of Joe (Official Lyric Video).mp3", artist: "Cup of Joe" },
-  { title: "Entry Four", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Entry Four.mp3", artist: "Jaydes" },
-  { title: "Sedia Aku Sebelum Hujan", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Idgitaf - Sedia Aku Sebelum Hujan (Official Lyric Video).mp3", artist: "idgitaf" },
+  { title:"Flatline", artist:"Justin Bieber", url:"https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3" },
+  { title:"Nuts", artist:"Rainy Bear", url:"https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" }
 ];
 
-/* ====== DOM refs ====== */
-const audio = document.getElementById('audio');
-const playBtn = document.getElementById('play');
-const prevBtn = document.getElementById('prev');
-const nextBtn = document.getElementById('next');
-const shuffleBtn = document.getElementById('shuffle');
-const coverEl = document.getElementById('cover');
-const coverCanvasEl = document.getElementById('coverCanvas');
-const titleEl = document.getElementById('title');
-const artistEl = document.getElementById('artist');
-const progress = document.getElementById('progress');
-const curEl = document.getElementById('cur');
-const durEl = document.getElementById('dur');
+// DOM
+const audio = document.getElementById("audio");
+const titleEl = document.getElementById("songTitle");
+const artistEl = document.getElementById("songArtist");
+const playBtn = document.getElementById("playBtn");
+const progress = document.getElementById("progress");
+const coverCanvas = document.getElementById("coverCanvas");
+const ctx = coverCanvas.getContext("2d");
 
-let currentIndex = 0;
-let isPlaying = false;
-let isShuffle = false;
+let current = 0;
+let playing = false;
 
-/* ====== audio / analyser ====== */
-let audioCtx = null;
-let analyser = null;
-let dataArray = null;
-let sourceNode = null;
-
-/* ====== cover ring ctx (high DPR for crispness) ====== */
-const coverCtx = coverCanvasEl.getContext('2d');
-
-/* ====== init cover canvas size (account devicePixelRatio) ====== */
-function resizeCoverCanvas(){
-  const rect = coverEl.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  coverCanvasEl.width = Math.round(rect.width * dpr);
-  coverCanvasEl.height = Math.round(rect.height * dpr);
-  coverCanvasEl.style.width = rect.width + 'px';
-  coverCanvasEl.style.height = rect.height + 'px';
-  coverCtx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale drawing operations
-}
-window.addEventListener('resize', resizeCoverCanvas);
-
-/* ====== set cover image/text and resize canvas ====== */
-function setCoverAndInfo(i){
+// Load first song
+function loadSong(i){
   const s = songs[i];
   titleEl.textContent = s.title;
-  artistEl.textContent = s.artist || '';
-  if(s.cover){
-    coverEl.style.backgroundImage = `url("${s.cover}")`;
-    coverEl.style.backgroundSize = 'cover';
-    coverEl.textContent = '';
-  } else {
-    coverEl.style.backgroundImage = '';
-    const initials = s.title.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-    coverEl.textContent = initials;
-  }
-  // ensure cover overlay canvas matches size
-  requestAnimationFrame(resizeCoverCanvas);
-}
+  artistEl.textContent = s.artist;
+  audio.src = s.url;
 
-/* ====== audio control functions (play/pause) ====== */
-function playCurrent(){
-  audio.play().then(()=> {
-    isPlaying = true;
-    playBtn.textContent = 'Pause ❚❚';
-    // resume audioCtx if created and suspended
-    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  }).catch(err=>{
-    console.warn('Play blocked:', err);
-  });
+  document.querySelector("#coverBox").childNodes[1].textContent =
+    (s.title[0] + (s.title.split(" ")[1]||"")[0]).toUpperCase();
 }
-function pauseCurrent(){
-  audio.pause();
-  isPlaying = false;
-  playBtn.textContent = 'Play ▶';
-}
-
-playBtn.addEventListener('click', ()=>{
-  if(!isPlaying){
-    if(!audio.src) loadSong(currentIndex);
-    // init audio context and analyser at first user gesture
-    if(!analyser) initAudioAnalyser();
-    playCurrent();
-  } else pauseCurrent();
-});
-
-/* ====== next / prev / shuffle ====== */
-function nextIndex(){
-  if(isShuffle){
-    let n = Math.floor(Math.random()*songs.length);
-    if(songs.length>1){ while(n === currentIndex) n = Math.floor(Math.random()*songs.length); }
-    return n;
-  } else return (currentIndex + 1) % songs.length;
-}
-function prevIndex(){
-  if(isShuffle) return Math.floor(Math.random()*songs.length);
-  return (currentIndex - 1 + songs.length) % songs.length;
-}
-nextBtn.addEventListener('click', ()=> changeSong(nextIndex(), true));
-prevBtn.addEventListener('click', ()=> changeSong(prevIndex(), true));
-shuffleBtn.addEventListener('click', ()=>{ isShuffle = !isShuffle; shuffleBtn.classList.toggle('active', isShuffle); });
-
-/* ====== load/change song ====== */
-function loadSong(i){
-  currentIndex = i;
-  audio.src = songs[i].url;
-  audio.crossOrigin = "anonymous";
-  setCoverAndInfo(i);
-  audio.addEventListener('loadedmetadata', ()=> {
-    durEl.textContent = formatTime(audio.duration);
-    progress.max = audio.duration;
-  }, { once: true });
-}
-function changeSong(i, autoPlay=false){
-  loadSong(i);
-  updateProgressUI(0, audio.duration || 0);
-  if(autoPlay){
-    setTimeout(()=> playCurrent(), 80);
-  }
-}
-
-/* ====== progress/seek ====== */
-audio.addEventListener('timeupdate', ()=>{
-  if(!isFinite(audio.duration)) return;
-  progress.value = audio.currentTime;
-  updateProgressUI(audio.currentTime, audio.duration);
-});
-progress.addEventListener('input', (e)=>{
-  audio.currentTime = parseFloat(e.target.value);
-  updateProgressUI(audio.currentTime, audio.duration || 0);
-});
-function updateProgressUI(cur, dur){
-  curEl.textContent = formatTime(cur);
-  durEl.textContent = isFinite(dur) && dur>0 ? formatTime(dur) : '0:00';
-}
-audio.addEventListener('ended', ()=> changeSong(nextIndex(), true));
-function formatTime(t){
-  if(!isFinite(t) || t <= 0) return '0:00';
-  const m = Math.floor(t/60);
-  const s = Math.floor(t%60).toString().padStart(2,'0');
-  return `${m}:${s}`;
-}
-
-/* ====== initialize UI ====== */
 loadSong(0);
-updateProgressUI(0,0);
-resizeCoverCanvas();
 
-/* ====== Audio analyser init (connects to existing audio element) ====== */
-function initAudioAnalyser(){
-  try {
-    if(audioCtx) return;
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    const bufferLength = analyser.frequencyBinCount;
-    dataArray = new Uint8Array(bufferLength);
-    sourceNode = audioCtx.createMediaElementSource(audio);
-    sourceNode.connect(analyser);
-    analyser.connect(audioCtx.destination);
-    // ensure both canvases animate
-    animate();
-  } catch(e){
-    console.warn('Analyser init failed:', e);
+// Play/Pause
+playBtn.onclick = ()=>{
+  if(!playing){
+    audio.play();
+    playBtn.textContent="Pause";
+    playing = true;
+  } else {
+    audio.pause();
+    playBtn.textContent="Play";
+    playing = false;
   }
+};
+
+// Progress
+audio.ontimeupdate = ()=>{
+  progress.value = audio.currentTime;
+};
+
+audio.onloadedmetadata = ()=>{
+  progress.max = audio.duration;
+};
+
+progress.oninput = ()=>{
+  audio.currentTime = progress.value;
+};
+
+// Visualizer (simple circle)
+let audioCtx = new AudioContext();
+let analyser = audioCtx.createAnalyser();
+let srcNode = audioCtx.createMediaElementSource(audio);
+srcNode.connect(analyser);
+analyser.connect(audioCtx.destination);
+
+analyser.fftSize = 64;
+const freq = new Uint8Array(analyser.frequencyBinCount);
+
+function draw(){
+  requestAnimationFrame(draw);
+  analyser.getByteFrequencyData(freq);
+
+  const w = coverCanvas.width = coverCanvas.clientWidth;
+  const h = coverCanvas.height = coverCanvas.clientHeight;
+
+  const avg = freq.reduce((a,b)=>a+b,0) / freq.length;
+  const radius = 50 + avg/4;
+
+  ctx.clearRect(0,0,w,h);
+  ctx.beginPath();
+  ctx.arc(w/2, h/2, radius, 0, Math.PI*2);
+  ctx.strokeStyle = "rgba(0,255,210,0.7)";
+  ctx.lineWidth = 6;
+  ctx.stroke();
 }
-
-/* ====== background visualizer (kept similar) ====== */
-const bgCanvas = document.getElementById('bgCanvas');
-const bgCtx = bgCanvas.getContext('2d');
-function resizeBg(){ bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; }
-window.addEventListener('resize', ()=>{ resizeBg(); resizeCoverCanvas(); });
-resizeBg();
-
-/* ====== main animate loop: draws both background and cover ring ====== */
-function animate(){
-  requestAnimationFrame(animate);
-
-  // background visualizer (gentle) - reuse analyser if available
-  if(analyser){
-    analyser.getByteFrequencyData(dataArray);
-  }
-
-  // draw bg (simple pulsing)
-  drawBackground(analyser ? average(dataArray) : 0);
-
-  // draw circular ring around cover (if analyser exists)
-  drawCoverRing(analyser ? dataArray : null);
-}
-
-/* helper: average value */
-function average(arr){
-  if(!arr || arr.length === 0) return 0;
-  let s = 0;
-  for(let i=0;i<arr.length;i++) s += arr[i];
-  return s / arr.length;
-}
-
-/* drawBackground: simple radial glow like sebelumnya */
-function drawBackground(avg){
-  bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
-  const maxRadius = Math.max(bgCanvas.width, bgCanvas.height) * 0.7;
-  const radius = Math.max(100, (avg/255) * maxRadius);
-  const colorSets = [
-    ['#002b36','#00ffe0'], ['#1a0727','#ff6ec7'], ['#07121a','#6ee7ff'], ['#140a2a','#ffd36e']
-  ];
-  const cs = colorSets[currentIndex % colorSets.length];
-  const g = bgCtx.createRadialGradient(bgCanvas.width*0.15, bgCanvas.height*0.2, radius*0.05, bgCanvas.width*0.5, bgCanvas.height*0.5, radius);
-  g.addColorStop(0, hexToRgba(cs[1], 0.32));
-  g.addColorStop(0.6, hexToRgba(cs[1], 0.08));
-  g.addColorStop(1, hexToRgba(cs[0], 0.0));
-  bgCtx.fillStyle = g;
-  bgCtx.fillRect(0,0,bgCanvas.width,bgCanvas.height);
-}
-
-/* drawCoverRing: circular LED ring reacting to frequency data */
-function drawCoverRing(freqData){
-  // prepare
-  const rect = coverEl.getBoundingClientRect();
-  const w = rect.width, h = rect.height;
-  coverCtx.clearRect(0,0,w,h);
-
-  // ring parameters
-  const cx = w/2, cy = h/2;
-  const baseRadius = Math.min(w,h) * 0.45;
-  const ringWidth = Math.min(w,h) * 0.12; // thickness area for leds
-  const segmentCount = 32;
-  const gap = 0.04; // gap between segments (radians)
-
-  // color based on current song
-  const colorSets = [
-    ['#002b36','#00ffe0'], ['#1a0727','#ff6ec7'], ['#07121a','#6ee7ff'], ['#140a2a','#ffd36e']
-  ];
-  const cs = colorSets[currentIndex % colorSets.length];
-  const neon = cs[1];
-
-  // draw segments
-  for(let i=0;i<segmentCount;i++){
-    const t = i / segmentCount;
-    const startAng = (t * Math.PI * 2) + gap;
-    const endAng = ((i+1)/segmentCount * Math.PI * 2) - gap;
-
-    // sample frequency data mapped to segment (use low-mid frequencies)
-    let sampleIndex = Math.floor((i / segmentCount) * (freqData ? freqData.length : 1));
-    let val = freqData ? freqData[sampleIndex] / 255 : 0; // 0..1
-    // add a small time-based pulse for motion when val is low
-    const pulse = 0.15 * Math.sin(performance.now()/300 + i);
-    val = Math.max(0, Math.min(1, val + pulse));
-
-    // compute inner/outer radius influenced by val
-    const innerR = baseRadius - (ringWidth * 0.45);
-    const outerR = baseRadius + (ringWidth * 0.45) + (val * ringWidth * 0.9);
-
-    // stroke style with glow: draw multiple strokes with increasing alpha for glow
-    const alpha = 0.22 + val * 0.78; // 0.22..1
-    coverCtx.lineCap = 'round';
-    coverCtx.lineWidth = Math.max(2, ringWidth * 0.22);
-
-    // gradient stroke for each segment
-    const grad = coverCtx.createLinearGradient(
-      cx + Math.cos(startAng)*innerR, cy + Math.sin(startAng)*innerR,
-      cx + Math.cos(endAng)*outerR, cy + Math.sin(endAng)*outerR
-    );
-    grad.addColorStop(0, hexToRgba(neon, alpha * 0.9));
-    grad.addColorStop(1, hexToRgba('#ffffff', alpha*0.4));
-
-    // draw arc (approx by stroking path at average radius)
-    const avgR = (innerR + outerR) / 2;
-    coverCtx.beginPath();
-    coverCtx.strokeStyle = grad;
-    coverCtx.arc(cx, cy, avgR, startAng, endAng);
-    coverCtx.stroke();
-
-    // small core dot to create LED appearance
-    const midAng = (startAng + endAng)/2;
-    const dotR = avgR + (ringWidth * 0.08);
-    const dotX = cx + Math.cos(midAng) * dotR;
-    const dotY = cy + Math.sin(midAng) * dotR;
-    coverCtx.beginPath();
-    coverCtx.fillStyle = hexToRgba(neon, 0.06 + val * 0.42);
-    coverCtx.arc(dotX, dotY, Math.max(0.8, coverCtx.lineWidth * 0.6 * val + 0.8), 0, Math.PI*2);
-    coverCtx.fill();
-  }
-
-  // subtle outer glow
-  coverCtx.beginPath();
-  coverCtx.globalCompositeOperation = 'lighter';
-  coverCtx.fillStyle = hexToRgba(neon, 0.03);
-  coverCtx.arc(cx, cy, baseRadius + ringWidth*0.9, 0, Math.PI*2);
-  coverCtx.fill();
-  coverCtx.globalCompositeOperation = 'source-over';
-}
-
-/* tiny util */
-function hexToRgba(hex, alpha){
-  const h = hex.replace('#','');
-  const r = parseInt(h.substring(0,2),16);
-  const g = parseInt(h.substring(2,4),16);
-  const b = parseInt(h.substring(4,6),16);
-  return `rgba(${r},${g},${b},${alpha})`;
-}
-
-/* === keyboard shortcuts & resume on play === */
-window.addEventListener('keydown', (e)=>{
-  if(e.code === 'Space'){ e.preventDefault(); playBtn.click(); }
-  if(e.code === 'ArrowRight') nextBtn.click();
-  if(e.code === 'ArrowLeft') prevBtn.click();
-});
-
-audio.addEventListener('play', ()=>{
-  isPlaying = true; playBtn.textContent = 'Pause ❚❚';
-  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-});
+draw();
 </script>
+
 </body>
 </html>
-
