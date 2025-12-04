@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Neon Glass Player — Enhanced</title>
+<title>Neon Glass Player — Circular Visualizer</title>
 <style>
   :root{
     --bg1:#071726;
@@ -51,7 +51,16 @@
     font-weight:700; color:var(--muted); font-size:14px;
     overflow:hidden; border:1px solid rgba(255,255,255,0.06);
     box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 18px rgba(0,255,200,0.03);
+    position:relative; /* important for overlay canvas */
   }
+
+  /* canvas overlay inside cover for ring */
+  .cover-canvas{
+    position:absolute; inset:0; width:100%; height:100%;
+    pointer-events:none; z-index:3;
+    border-radius:10px;
+  }
+
   .info{flex:1; text-align:left;}
   .title{font-size:18px; margin:0 0 6px; color:#dffaf6;}
   .artist{font-size:13px; margin:0; color:var(--muted);}
@@ -94,7 +103,11 @@
 
 <div class="wrap" role="region" aria-label="Music player">
   <div class="top">
-    <div class="cover" id="cover">FL</div>
+    <div class="cover" id="cover">FL
+      <!-- canvas overlay for circular visualizer -->
+      <canvas class="cover-canvas" id="coverCanvas" aria-hidden="true"></canvas>
+    </div>
+
     <div class="info">
       <p class="title" id="title">Flatline</p>
       <p class="artist" id="artist">(click play)</p>
@@ -123,51 +136,23 @@
 <audio id="audio" crossorigin="anonymous"></audio>
 
 <script>
-/* ====== Playlist: tambahkan cover (url) jika ada; cover bisa tetap teks awal jika tidak ada gambar ====== */
+/* ====== playlist (sama seperti milikmu) ====== */
 const songs = [
-  { 
-    title: "Flatline",
-    url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3",
-    artist: "Justin Bieber",
-    cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/flatline.jpg"
-  },
-
-  { 
-    title: "Nuts",
-    url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3",
-    artist: "Artist B",
-    cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/nuts.jpg"
-  },
-
-  { 
-    title: "Hold Me Down",
-    url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3",
-    artist: "Artist C",
-    cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/hold.jpg"
-  },
-
-  { 
-    title: "You Da One",
-    url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/You Da One.mp3",
-    artist: "Artist D",
-    cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/youdaone.jpg"
-  },
-
-  { 
-    title: "Sahabat Jadi Cinta",
-    url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Sahabat Jadi Cinta.mp3",
-    artist: "Artist E",
-    cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/sahabatjadicinta.jpg"
-  }
+  { title: "Flatline", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3", artist: "Justin Bieber", cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/flatline.jpg" },
+  { title: "Nuts", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3", artist: "Artist B", cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/nuts.jpg" },
+  { title: "Hold Me Down", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3", artist: "Artist C", cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/hold.jpg" },
+  { title: "You Da One", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/You Da One.mp3", artist: "Artist D", cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/youdaone.jpg" },
+  { title: "Sahabat Jadi Cinta", url: "https://raw.githubusercontent.com/rikorandika910/wkw/main/Sahabat Jadi Cinta.mp3", artist: "Artist E", cover: "https://raw.githubusercontent.com/rikorandika910/wkw/main/sahabatjadicinta.jpg" }
 ];
 
-
+/* ====== DOM refs ====== */
 const audio = document.getElementById('audio');
 const playBtn = document.getElementById('play');
 const prevBtn = document.getElementById('prev');
 const nextBtn = document.getElementById('next');
 const shuffleBtn = document.getElementById('shuffle');
 const coverEl = document.getElementById('cover');
+const coverCanvasEl = document.getElementById('coverCanvas');
 const titleEl = document.getElementById('title');
 const artistEl = document.getElementById('artist');
 const progress = document.getElementById('progress');
@@ -178,7 +163,28 @@ let currentIndex = 0;
 let isPlaying = false;
 let isShuffle = false;
 
-/* ====== Load song metadata into UI ====== */
+/* ====== audio / analyser ====== */
+let audioCtx = null;
+let analyser = null;
+let dataArray = null;
+let sourceNode = null;
+
+/* ====== cover ring ctx (high DPR for crispness) ====== */
+const coverCtx = coverCanvasEl.getContext('2d');
+
+/* ====== init cover canvas size (account devicePixelRatio) ====== */
+function resizeCoverCanvas(){
+  const rect = coverEl.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  coverCanvasEl.width = Math.round(rect.width * dpr);
+  coverCanvasEl.height = Math.round(rect.height * dpr);
+  coverCanvasEl.style.width = rect.width + 'px';
+  coverCanvasEl.style.height = rect.height + 'px';
+  coverCtx.setTransform(dpr, 0, 0, dpr, 0, 0); // scale drawing operations
+}
+window.addEventListener('resize', resizeCoverCanvas);
+
+/* ====== set cover image/text and resize canvas ====== */
 function setCoverAndInfo(i){
   const s = songs[i];
   titleEl.textContent = s.title;
@@ -188,18 +194,21 @@ function setCoverAndInfo(i){
     coverEl.style.backgroundSize = 'cover';
     coverEl.textContent = '';
   } else {
-    // fallback: initials
-    const initials = s.title.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     coverEl.style.backgroundImage = '';
+    const initials = s.title.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     coverEl.textContent = initials;
   }
+  // ensure cover overlay canvas matches size
+  requestAnimationFrame(resizeCoverCanvas);
 }
 
-/* ====== play / pause handling ====== */
+/* ====== audio control functions (play/pause) ====== */
 function playCurrent(){
   audio.play().then(()=> {
     isPlaying = true;
     playBtn.textContent = 'Pause ❚❚';
+    // resume audioCtx if created and suspended
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }).catch(err=>{
     console.warn('Play blocked:', err);
   });
@@ -212,92 +221,63 @@ function pauseCurrent(){
 
 playBtn.addEventListener('click', ()=>{
   if(!isPlaying){
-    // if audio src not set, load current
     if(!audio.src) loadSong(currentIndex);
+    // init audio context and analyser at first user gesture
+    if(!analyser) initAudioAnalyser();
     playCurrent();
-    // create audio context on first user gesture (visualizer)
-    if(!analyser) initVisualizer();
   } else pauseCurrent();
 });
 
-/* ====== next / prev with shuffle logic ====== */
+/* ====== next / prev / shuffle ====== */
 function nextIndex(){
   if(isShuffle){
     let n = Math.floor(Math.random()*songs.length);
-    // avoid same index if >1 songs
-    if(songs.length>1){
-      while(n === currentIndex) n = Math.floor(Math.random()*songs.length);
-    }
+    if(songs.length>1){ while(n === currentIndex) n = Math.floor(Math.random()*songs.length); }
     return n;
-  } else {
-    return (currentIndex + 1) % songs.length;
-  }
+  } else return (currentIndex + 1) % songs.length;
 }
 function prevIndex(){
   if(isShuffle) return Math.floor(Math.random()*songs.length);
   return (currentIndex - 1 + songs.length) % songs.length;
 }
+nextBtn.addEventListener('click', ()=> changeSong(nextIndex(), true));
+prevBtn.addEventListener('click', ()=> changeSong(prevIndex(), true));
+shuffleBtn.addEventListener('click', ()=>{ isShuffle = !isShuffle; shuffleBtn.classList.toggle('active', isShuffle); });
 
-nextBtn.addEventListener('click', ()=> {
-  changeSong(nextIndex(), true);
-});
-prevBtn.addEventListener('click', ()=> {
-  changeSong(prevIndex(), true);
-});
-
-shuffleBtn.addEventListener('click', ()=>{
-  isShuffle = !isShuffle;
-  shuffleBtn.classList.toggle('active', isShuffle);
-});
-
-/* ====== load/change song function ====== */
+/* ====== load/change song ====== */
 function loadSong(i){
   currentIndex = i;
   audio.src = songs[i].url;
   audio.crossOrigin = "anonymous";
   setCoverAndInfo(i);
-  // update duration once metadata loaded
   audio.addEventListener('loadedmetadata', ()=> {
     durEl.textContent = formatTime(audio.duration);
     progress.max = audio.duration;
   }, { once: true });
 }
-
 function changeSong(i, autoPlay=false){
   loadSong(i);
   updateProgressUI(0, audio.duration || 0);
   if(autoPlay){
-    // small timeout so browser treats as user action if invoked by button
-    setTimeout(()=> {
-      playCurrent();
-    }, 80);
+    setTimeout(()=> playCurrent(), 80);
   }
 }
 
-/* ====== progress / seeking ====== */
+/* ====== progress/seek ====== */
 audio.addEventListener('timeupdate', ()=>{
   if(!isFinite(audio.duration)) return;
   progress.value = audio.currentTime;
   updateProgressUI(audio.currentTime, audio.duration);
 });
-
 progress.addEventListener('input', (e)=>{
   audio.currentTime = parseFloat(e.target.value);
   updateProgressUI(audio.currentTime, audio.duration || 0);
 });
-
 function updateProgressUI(cur, dur){
   curEl.textContent = formatTime(cur);
   durEl.textContent = isFinite(dur) && dur>0 ? formatTime(dur) : '0:00';
 }
-
-/* ====== when song ends: go to next (shuffle aware) ====== */
-audio.addEventListener('ended', ()=>{
-  const n = nextIndex();
-  changeSong(n, true);
-});
-
-/* ====== util: time format ====== */
+audio.addEventListener('ended', ()=> changeSong(nextIndex(), true));
 function formatTime(t){
   if(!isFinite(t) || t <= 0) return '0:00';
   const m = Math.floor(t/60);
@@ -305,19 +285,13 @@ function formatTime(t){
   return `${m}:${s}`;
 }
 
-/* ====== initialize UI with first song ====== */
+/* ====== initialize UI ====== */
 loadSong(0);
 updateProgressUI(0,0);
+resizeCoverCanvas();
 
-/* ====== VISUALIZER: animated background reacting to audio ====== */
-const canvas = document.getElementById('bgCanvas');
-const ctx = canvas.getContext('2d');
-let analyser = null;
-let dataArray = null;
-let audioCtx = null;
-let sourceNode = null;
-
-function initVisualizer(){
+/* ====== Audio analyser init (connects to existing audio element) ====== */
+function initAudioAnalyser(){
   try {
     if(audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -328,87 +302,137 @@ function initVisualizer(){
     sourceNode = audioCtx.createMediaElementSource(audio);
     sourceNode.connect(analyser);
     analyser.connect(audioCtx.destination);
-    resizeCanvas();
+    // ensure both canvases animate
     animate();
-  } catch (e){
-    console.warn('Visualizer init failed:', e);
+  } catch(e){
+    console.warn('Analyser init failed:', e);
   }
 }
 
-/* canvas sizing */
-function resizeCanvas(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
+/* ====== background visualizer (kept similar) ====== */
+const bgCanvas = document.getElementById('bgCanvas');
+const bgCtx = bgCanvas.getContext('2d');
+function resizeBg(){ bgCanvas.width = window.innerWidth; bgCanvas.height = window.innerHeight; }
+window.addEventListener('resize', ()=>{ resizeBg(); resizeCoverCanvas(); });
+resizeBg();
 
-/* draw loop */
+/* ====== main animate loop: draws both background and cover ring ====== */
 function animate(){
   requestAnimationFrame(animate);
-  if(!analyser) {
-    // gentle pulsing background when idle
-    drawIdle();
-    return;
+
+  // background visualizer (gentle) - reuse analyser if available
+  if(analyser){
+    analyser.getByteFrequencyData(dataArray);
   }
-  analyser.getByteFrequencyData(dataArray);
-  // compute average amplitude
-  let sum = 0;
-  for(let i=0;i<dataArray.length;i++) sum += dataArray[i];
-  const avg = sum / dataArray.length; // 0-255
 
-  // clear
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // draw bg (simple pulsing)
+  drawBackground(analyser ? average(dataArray) : 0);
 
-  // draw radial glow driven by avg
-  const maxRadius = Math.max(canvas.width, canvas.height) * 0.7;
+  // draw circular ring around cover (if analyser exists)
+  drawCoverRing(analyser ? dataArray : null);
+}
+
+/* helper: average value */
+function average(arr){
+  if(!arr || arr.length === 0) return 0;
+  let s = 0;
+  for(let i=0;i<arr.length;i++) s += arr[i];
+  return s / arr.length;
+}
+
+/* drawBackground: simple radial glow like sebelumnya */
+function drawBackground(avg){
+  bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+  const maxRadius = Math.max(bgCanvas.width, bgCanvas.height) * 0.7;
   const radius = Math.max(100, (avg/255) * maxRadius);
-
-  // gradient color depends on current song index
   const colorSets = [
-    ['#002b36','#00ffe0'], // cyan
-    ['#1a0727','#ff6ec7'], // magenta
-    ['#07121a','#6ee7ff'], // light cyan
-    ['#140a2a','#ffd36e']  // amber
+    ['#002b36','#00ffe0'], ['#1a0727','#ff6ec7'], ['#07121a','#6ee7ff'], ['#140a2a','#ffd36e']
   ];
   const cs = colorSets[currentIndex % colorSets.length];
-  const g = ctx.createRadialGradient(canvas.width*0.15, canvas.height*0.2, radius*0.05, canvas.width*0.5, canvas.height*0.5, radius);
+  const g = bgCtx.createRadialGradient(bgCanvas.width*0.15, bgCanvas.height*0.2, radius*0.05, bgCanvas.width*0.5, bgCanvas.height*0.5, radius);
   g.addColorStop(0, hexToRgba(cs[1], 0.32));
   g.addColorStop(0.6, hexToRgba(cs[1], 0.08));
   g.addColorStop(1, hexToRgba(cs[0], 0.0));
-
-  ctx.fillStyle = g;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // draw small moving particles based on frequency
-  const particleCount = Math.min(120, Math.floor(avg/2)+20);
-  for(let i=0;i<particleCount;i++){
-    const ang = (i / particleCount) * Math.PI * 2 + (performance.now()/8000)*(i%7);
-    const r = radius*0.7 + (i%7)*6;
-    const x = canvas.width*0.5 + Math.cos(ang) * r * (0.6 + Math.sin(performance.now()/5000 + i)*0.3);
-    const y = canvas.height*0.45 + Math.sin(ang) * r * 0.45;
-    const size = Math.max(0.6, (dataArray[i % dataArray.length]/255)*6);
-    ctx.beginPath();
-    ctx.fillStyle = hexToRgba(cs[1], 0.06 + Math.random()*0.14);
-    ctx.arc(x, y, size, 0, Math.PI*2);
-    ctx.fill();
-  }
+  bgCtx.fillStyle = g;
+  bgCtx.fillRect(0,0,bgCanvas.width,bgCanvas.height);
 }
 
-function drawIdle(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  // soft slow gradient
-  const gradient = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
-  gradient.addColorStop(0, 'rgba(0,20,30,0.4)');
-  gradient.addColorStop(1, 'rgba(0,0,0,0.4)');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  // faint centered glow
-  ctx.beginPath();
-  const rg = ctx.createRadialGradient(canvas.width*0.5, canvas.height*0.4, 50, canvas.width*0.5, canvas.height*0.4, Math.max(canvas.width,canvas.height)*0.6);
-  rg.addColorStop(0, 'rgba(0,255,200,0.02)');
-  rg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = rg;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+/* drawCoverRing: circular LED ring reacting to frequency data */
+function drawCoverRing(freqData){
+  // prepare
+  const rect = coverEl.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  coverCtx.clearRect(0,0,w,h);
+
+  // ring parameters
+  const cx = w/2, cy = h/2;
+  const baseRadius = Math.min(w,h) * 0.45;
+  const ringWidth = Math.min(w,h) * 0.12; // thickness area for leds
+  const segmentCount = 32;
+  const gap = 0.04; // gap between segments (radians)
+
+  // color based on current song
+  const colorSets = [
+    ['#002b36','#00ffe0'], ['#1a0727','#ff6ec7'], ['#07121a','#6ee7ff'], ['#140a2a','#ffd36e']
+  ];
+  const cs = colorSets[currentIndex % colorSets.length];
+  const neon = cs[1];
+
+  // draw segments
+  for(let i=0;i<segmentCount;i++){
+    const t = i / segmentCount;
+    const startAng = (t * Math.PI * 2) + gap;
+    const endAng = ((i+1)/segmentCount * Math.PI * 2) - gap;
+
+    // sample frequency data mapped to segment (use low-mid frequencies)
+    let sampleIndex = Math.floor((i / segmentCount) * (freqData ? freqData.length : 1));
+    let val = freqData ? freqData[sampleIndex] / 255 : 0; // 0..1
+    // add a small time-based pulse for motion when val is low
+    const pulse = 0.15 * Math.sin(performance.now()/300 + i);
+    val = Math.max(0, Math.min(1, val + pulse));
+
+    // compute inner/outer radius influenced by val
+    const innerR = baseRadius - (ringWidth * 0.45);
+    const outerR = baseRadius + (ringWidth * 0.45) + (val * ringWidth * 0.9);
+
+    // stroke style with glow: draw multiple strokes with increasing alpha for glow
+    const alpha = 0.22 + val * 0.78; // 0.22..1
+    coverCtx.lineCap = 'round';
+    coverCtx.lineWidth = Math.max(2, ringWidth * 0.22);
+
+    // gradient stroke for each segment
+    const grad = coverCtx.createLinearGradient(
+      cx + Math.cos(startAng)*innerR, cy + Math.sin(startAng)*innerR,
+      cx + Math.cos(endAng)*outerR, cy + Math.sin(endAng)*outerR
+    );
+    grad.addColorStop(0, hexToRgba(neon, alpha * 0.9));
+    grad.addColorStop(1, hexToRgba('#ffffff', alpha*0.4));
+
+    // draw arc (approx by stroking path at average radius)
+    const avgR = (innerR + outerR) / 2;
+    coverCtx.beginPath();
+    coverCtx.strokeStyle = grad;
+    coverCtx.arc(cx, cy, avgR, startAng, endAng);
+    coverCtx.stroke();
+
+    // small core dot to create LED appearance
+    const midAng = (startAng + endAng)/2;
+    const dotR = avgR + (ringWidth * 0.08);
+    const dotX = cx + Math.cos(midAng) * dotR;
+    const dotY = cy + Math.sin(midAng) * dotR;
+    coverCtx.beginPath();
+    coverCtx.fillStyle = hexToRgba(neon, 0.06 + val * 0.42);
+    coverCtx.arc(dotX, dotY, Math.max(0.8, coverCtx.lineWidth * 0.6 * val + 0.8), 0, Math.PI*2);
+    coverCtx.fill();
+  }
+
+  // subtle outer glow
+  coverCtx.beginPath();
+  coverCtx.globalCompositeOperation = 'lighter';
+  coverCtx.fillStyle = hexToRgba(neon, 0.03);
+  coverCtx.arc(cx, cy, baseRadius + ringWidth*0.9, 0, Math.PI*2);
+  coverCtx.fill();
+  coverCtx.globalCompositeOperation = 'source-over';
 }
 
 /* tiny util */
@@ -420,27 +444,17 @@ function hexToRgba(hex, alpha){
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-/* Initialize canvas size & idle draw */
-resizeCanvas();
-drawIdle();
-
-/* optional: keyboard shortcuts */
+/* === keyboard shortcuts & resume on play === */
 window.addEventListener('keydown', (e)=>{
   if(e.code === 'Space'){ e.preventDefault(); playBtn.click(); }
   if(e.code === 'ArrowRight') nextBtn.click();
   if(e.code === 'ArrowLeft') prevBtn.click();
 });
 
-/* ensure when user picks next via UI we also ensure visualizer uses updated analyser (no change needed) */
 audio.addEventListener('play', ()=>{
   isPlaying = true; playBtn.textContent = 'Pause ❚❚';
-  // resume audioCtx if suspended (some browsers require resume)
   if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 });
-
-/* if user changes song by calling changeSong, visualizer color uses currentIndex in animate() automatically */
-
-/* End of script */
 </script>
 </body>
 </html>
