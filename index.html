@@ -1,181 +1,242 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Simple Neon Music Player</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Neon Ring Player</title>
 
 <style>
-  :root{
-    --bg: #0e0f1a;
-    --accent: #00ffd1;
-    --text: #eaffff;
-  }
+:root{
+  --bg:#0a0f1a;
+  --card:#111723;
+  --neon:#00ffd1;
+  --text:#e9ffff;
+  --muted:#98b8c2;
+}
 
-  body{
-    margin:0;
-    background:var(--bg);
-    font-family:Arial, sans-serif;
-    color:var(--text);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    padding:28px;
-  }
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:Arial, sans-serif;
+  display:flex;
+  justify-content:center;
+  padding:30px;
+  color:var(--text);
+}
 
-  h2{ margin:6px 0 2px; }
-  p{ margin:0; color:#9cc; }
+.player{
+  width:350px;
+  padding:22px;
+  background:var(--card);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:16px;
+  box-shadow:0 0 40px rgba(0,255,200,.05);
+}
 
-  #player{
-    background:rgba(255,255,255,0.05);
-    padding:20px;
-    width:min(380px, 95%);
-    border-radius:16px;
-    border:1px solid rgba(255,255,255,0.08);
-    backdrop-filter:blur(8px);
-    text-align:center;
-  }
+.cover{
+  width:150px;
+  height:150px;
+  margin:10px auto 16px;
+  border-radius:50%;
+  background:#0d1320;
+  border:2px solid var(--neon);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-weight:bold;
+  font-size:30px;
+  color:var(--muted);
+  position:relative;
+  overflow:hidden;
+}
 
-  #coverBox{
-    width:140px;
-    height:140px;
-    border-radius:50%;
-    margin:auto;
-    position:relative;
-    background:#111;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:26px;
-    font-weight:bold;
-    border:2px solid var(--accent);
-    overflow:hidden;
-  }
+#ringCanvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+}
 
-  #coverCanvas{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    pointer-events:none;
-  }
+.title{
+  text-align:center;
+  font-size:20px;
+  margin:3px 0;
+}
+.artist{
+  text-align:center;
+  font-size:13px;
+  color:var(--muted);
+  margin-top:-4px;
+}
 
-  button{
-    padding:10px 20px;
-    margin-top:12px;
-    background:var(--accent);
-    color:#012;
-    border:none;
-    border-radius:8px;
-    font-weight:bold;
-    cursor:pointer;
-  }
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  margin-top:15px;
+}
+.btn{
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.15);
+  color:var(--text);
+  padding:8px 14px;
+  border-radius:10px;
+  cursor:pointer;
+}
+.btn:hover{
+  background:rgba(0,255,200,.15);
+}
 
-  #progress{
-    width:100%;
-    margin-top:15px;
-  }
+.progress{
+  width:100%;
+  margin-top:15px;
+}
+#timeBox{
+  font-size:12px;
+  display:flex;
+  justify-content:space-between;
+  color:var(--muted);
+}
 </style>
 </head>
 <body>
 
-<h2 id="songTitle">Song Title</h2>
-<p id="songArtist">Artist Name</p>
-
-<div id="player">
-  <div id="coverBox">
-    <canvas id="coverCanvas"></canvas>
+<div class="player">
+  <div class="cover" id="coverBox">
+    <canvas id="ringCanvas"></canvas>
     FL
   </div>
 
-  <button id="playBtn">Play</button>
+  <div class="title" id="songTitle">Flatline</div>
+  <div class="artist" id="songArtist">Justin Bieber</div>
 
-  <input id="progress" type="range" value="0" min="0" max="100">
+  <div class="controls">
+    <button class="btn" id="prev">⏮</button>
+    <button class="btn" id="play">▶</button>
+    <button class="btn" id="next">⏭</button>
+    <button class="btn" id="shuffle">🔀</button>
+  </div>
+
+  <input id="progress" class="progress" type="range" min="0" max="100" value="0">
+  <div id="timeBox"><span id="cur">0:00</span><span id="dur">0:00</span></div>
 </div>
 
 <audio id="audio" crossorigin="anonymous"></audio>
 
 <script>
+/* ---- playlist ---- */
 const songs = [
   { title:"Flatline", artist:"Justin Bieber", url:"https://raw.githubusercontent.com/rikorandika910/wkw/main/Flatline.mp3" },
-  { title:"Nuts", artist:"Rainy Bear", url:"https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" }
+  { title:"Nuts", artist:"Rainy Bear", url:"https://raw.githubusercontent.com/rikorandika910/wkw/main/Nuts.mp3" },
+  { title:"Hold Me Down", artist:"Daniel Caesar", url:"https://raw.githubusercontent.com/rikorandika910/wkw/main/Hold Me Down.mp3" },
 ];
 
-// DOM
+/* DOM */
 const audio = document.getElementById("audio");
 const titleEl = document.getElementById("songTitle");
 const artistEl = document.getElementById("songArtist");
-const playBtn = document.getElementById("playBtn");
+const coverBox = document.getElementById("coverBox");
+const ringCanvas = document.getElementById("ringCanvas");
+const ctx = ringCanvas.getContext("2d");
+const playBtn = document.getElementById("play");
+const nextBtn = document.getElementById("next");
+const prevBtn = document.getElementById("prev");
+const shuffleBtn = document.getElementById("shuffle");
 const progress = document.getElementById("progress");
-const coverCanvas = document.getElementById("coverCanvas");
-const ctx = coverCanvas.getContext("2d");
+const curEl = document.getElementById("cur");
+const durEl = document.getElementById("dur");
 
-let current = 0;
+let index = 0;
 let playing = false;
+let shuffle = false;
 
-// Load first song
+/* load song */
 function loadSong(i){
   const s = songs[i];
   titleEl.textContent = s.title;
   artistEl.textContent = s.artist;
   audio.src = s.url;
 
-  document.querySelector("#coverBox").childNodes[1].textContent =
+  // cover initials
+  coverBox.childNodes[1].textContent =
     (s.title[0] + (s.title.split(" ")[1]||"")[0]).toUpperCase();
 }
 loadSong(0);
 
-// Play/Pause
+/* play/pause */
 playBtn.onclick = ()=>{
   if(!playing){
     audio.play();
-    playBtn.textContent="Pause";
+    playBtn.textContent="⏸";
     playing = true;
   } else {
     audio.pause();
-    playBtn.textContent="Play";
+    playBtn.textContent="▶";
     playing = false;
   }
 };
 
-// Progress
-audio.ontimeupdate = ()=>{
-  progress.value = audio.currentTime;
-};
+/* next/prev */
+nextBtn.onclick = ()=> changeSong(shuffle ? rand() : (index+1)%songs.length);
+prevBtn.onclick = ()=> changeSong(shuffle ? rand() : (index-1+songs.length)%songs.length);
+shuffleBtn.onclick = ()=> shuffle = !shuffle;
 
-audio.onloadedmetadata = ()=>{
+function rand(){ return Math.floor(Math.random()*songs.length); }
+
+function changeSong(i){
+  index = i;
+  loadSong(i);
+  audio.play();
+  playBtn.textContent="⏸";
+  playing = true;
+}
+
+/* time + progress */
+audio.addEventListener("loadedmetadata", ()=>{
   progress.max = audio.duration;
-};
+  durEl.textContent = format(audio.duration);
+});
+audio.addEventListener("timeupdate", ()=>{
+  progress.value = audio.currentTime;
+  curEl.textContent = format(audio.currentTime);
+});
+progress.oninput = ()=> audio.currentTime = progress.value;
 
-progress.oninput = ()=>{
-  audio.currentTime = progress.value;
-};
+function format(t){
+  if(!t) return "0:00";
+  const m = Math.floor(t/60);
+  const s = String(Math.floor(t%60)).padStart(2,"0");
+  return m+":"+s;
+}
 
-// Visualizer (simple circle)
-let audioCtx = new AudioContext();
-let analyser = audioCtx.createAnalyser();
-let srcNode = audioCtx.createMediaElementSource(audio);
-srcNode.connect(analyser);
-analyser.connect(audioCtx.destination);
-
-analyser.fftSize = 64;
-const freq = new Uint8Array(analyser.frequencyBinCount);
+/* ---- Visualizer Ring ---- */
+let actx = new AudioContext();
+let analyser = actx.createAnalyser();
+let src = actx.createMediaElementSource(audio);
+src.connect(analyser);
+analyser.connect(actx.destination);
+analyser.fftSize = 128;
+const data = new Uint8Array(analyser.frequencyBinCount);
 
 function draw(){
   requestAnimationFrame(draw);
-  analyser.getByteFrequencyData(freq);
+  analyser.getByteFrequencyData(data);
 
-  const w = coverCanvas.width = coverCanvas.clientWidth;
-  const h = coverCanvas.height = coverCanvas.clientHeight;
-
-  const avg = freq.reduce((a,b)=>a+b,0) / freq.length;
-  const radius = 50 + avg/4;
+  const w = ringCanvas.width = ringCanvas.clientWidth;
+  const h = ringCanvas.height = ringCanvas.clientHeight;
 
   ctx.clearRect(0,0,w,h);
+
+  const avg = data.reduce((a,b)=>a+b,0)/data.length;
+  const radius = 50 + avg/6;
+
   ctx.beginPath();
   ctx.arc(w/2, h/2, radius, 0, Math.PI*2);
-  ctx.strokeStyle = "rgba(0,255,210,0.7)";
+  ctx.strokeStyle = "rgba(0,255,200,0.8)";
   ctx.lineWidth = 6;
+  ctx.shadowBlur = 15;
+  ctx.shadowColor = "rgba(0,255,200,0.6)";
   ctx.stroke();
 }
 draw();
